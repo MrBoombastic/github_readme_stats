@@ -398,8 +398,14 @@ public sealed class GitHubClient : IGitHubClient
         // Sort once after merging all years (safety measure - data should already be sorted)
         allContributions.Sort((a, b) => a.Date.CompareTo(b.Date));
 
+        // Derive "today" from the contribution data itself, which uses the user's GitHub profile timezone.
+        // This avoids a timezone mismatch between the server (UTC) and GitHub's contribution dates.
+        var gitHubToday = allContributions.Count > 0
+            ? allContributions[^1].Date
+            : DateOnly.FromDateTime(DateTime.UtcNow);
+
         // Calculate streaks
-        var (currentStreak, longestStreak, firstContribution) = CalculateStreaks(allContributions);
+        var (currentStreak, longestStreak, firstContribution) = CalculateStreaks(allContributions, gitHubToday);
 
         return new StreakStats
         {
@@ -497,7 +503,7 @@ public sealed class GitHubClient : IGitHubClient
         List<(int Year, int TotalContributions, List<(DateOnly Date, int Count)> Contributions)> YearResults);
 
     private static (StreakInfo Current, StreakInfo Longest, DateOnly? FirstContribution) CalculateStreaks(
-        List<(DateOnly Date, int Count)> contributions)
+        List<(DateOnly Date, int Count)> contributions, DateOnly today)
     {
         if (contributions.Count == 0)
         {
@@ -506,8 +512,6 @@ public sealed class GitHubClient : IGitHubClient
                 new StreakInfo { Length = 0 },
                 null);
         }
-
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         // Data is already sorted from the caller, just need to dedupe by taking max count per date
         // Use a dictionary for O(1) lookup instead of GroupBy which is O(n)
