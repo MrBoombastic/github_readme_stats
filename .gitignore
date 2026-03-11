@@ -18,3 +18,4 @@ src/GitHubStats.Api/GitHubStats.Api.csproj.user
 src/GitHubStats.Api/Properties/PublishProfiles/FolderProfile.pubxml
 /.claude
 appsettings.json
+.idea
