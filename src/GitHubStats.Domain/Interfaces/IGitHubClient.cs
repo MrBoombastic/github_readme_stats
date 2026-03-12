@@ -36,6 +36,7 @@ public interface IGitHubClient
         IReadOnlyList<string>? excludeRepos = null,
         double sizeWeight = 1,
         double countWeight = 0,
+        bool includeForks = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>

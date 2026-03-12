@@ -23,6 +23,7 @@ public static class TopLangsEndpoint
             [FromQuery(Name = "hide_title")] bool? hideTitle,
             [FromQuery(Name = "hide_border")] bool? hideBorder,
             [FromQuery(Name = "card_width")] int? cardWidth,
+            [FromQuery(Name = "card_height")] int? cardHeight,
             [FromQuery] string? theme,
             [FromQuery(Name = "title_color")] string? titleColor,
             [FromQuery(Name = "text_color")] string? textColor,
@@ -34,6 +35,7 @@ public static class TopLangsEndpoint
             [FromQuery(Name = "disable_animations")] bool? disableAnimations,
             [FromQuery(Name = "custom_title")] string? customTitle,
             [FromQuery(Name = "stats_format")] string? statsFormat,
+            [FromQuery(Name = "include_forks")] bool? includeForks,
             TopLanguagesCardService service,
             ICardRenderer renderer,
             HttpContext context,
@@ -86,6 +88,7 @@ public static class TopLangsEndpoint
                     Layout = layout ?? "normal",
                     LangsCount = langsCount,
                     CardWidth = cardWidth,
+                    CardHeight = cardHeight,
                     HideProgress = hideProgress ?? false,
                     StatsFormat = statsFormat ?? "percentages"
                 };
@@ -98,6 +101,7 @@ public static class TopLangsEndpoint
                     excludeRepos,
                     sizeWeight ?? 1,
                     countWeight ?? 0,
+                    includeForks ?? false,
                     cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : null,
                     cancellationToken);
 
