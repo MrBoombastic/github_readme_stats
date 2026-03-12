@@ -205,6 +205,11 @@ public record StatsCardOptions : CardOptions
     /// Gets or sets the number of decimal places for formatted numbers.
     /// </summary>
     public int? NumberPrecision { get; init; }
+
+    /// <summary>
+    /// Gets or sets the rank icon style to use.
+    /// </summary>
+    public string RankIcon { get; init; } = "default";
 }
 
 /// <summary>
