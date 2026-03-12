@@ -31,15 +31,16 @@ public sealed class TopLanguagesCardService
         IReadOnlyList<string>? excludeRepos = null,
         double sizeWeight = 1,
         double countWeight = 0,
+        bool includeForks = false,
         TimeSpan? cacheDuration = null,
         CancellationToken cancellationToken = default)
     {
-        var cacheKey = GenerateCacheKey(username, excludeRepos, sizeWeight, countWeight);
+        var cacheKey = GenerateCacheKey(username, excludeRepos, sizeWeight, countWeight, includeForks);
 
         var languages = await _cacheService.GetOrCreateAsync(
             cacheKey,
             async ct => await _gitHubClient.GetTopLanguagesAsync(
-                username, excludeRepos, sizeWeight, countWeight, ct),
+                username, excludeRepos, sizeWeight, countWeight, includeForks, ct),
             cacheDuration ?? TimeSpan.FromDays(6),
             cancellationToken);
 
@@ -54,15 +55,16 @@ public sealed class TopLanguagesCardService
         IReadOnlyList<string>? excludeRepos = null,
         double sizeWeight = 1,
         double countWeight = 0,
+        bool includeForks = false,
         TimeSpan? cacheDuration = null,
         CancellationToken cancellationToken = default)
     {
-        var cacheKey = GenerateCacheKey(username, excludeRepos, sizeWeight, countWeight);
+        var cacheKey = GenerateCacheKey(username, excludeRepos, sizeWeight, countWeight, includeForks);
 
         return await _cacheService.GetOrCreateAsync(
             cacheKey,
             async ct => await _gitHubClient.GetTopLanguagesAsync(
-                username, excludeRepos, sizeWeight, countWeight, ct),
+                username, excludeRepos, sizeWeight, countWeight, includeForks, ct),
             cacheDuration ?? TimeSpan.FromDays(6),
             cancellationToken);
     }
@@ -71,12 +73,13 @@ public sealed class TopLanguagesCardService
         string username,
         IReadOnlyList<string>? excludeRepos,
         double sizeWeight,
-        double countWeight)
+        double countWeight,
+        bool includeForks)
     {
         var excludeHash = excludeRepos?.Count > 0
             ? string.Join(",", excludeRepos.OrderBy(r => r)).GetHashCode()
             : 0;
 
-        return $"langs:{username}:{excludeHash}:{sizeWeight}:{countWeight}";
+        return $"langs:{username}:{excludeHash}:{sizeWeight}:{countWeight}:{includeForks}";
     }
 }
