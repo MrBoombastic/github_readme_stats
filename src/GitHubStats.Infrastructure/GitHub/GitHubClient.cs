@@ -6,6 +6,7 @@ using GitHubStats.Domain.Exceptions;
 using GitHubStats.Domain.Interfaces;
 using GitHubStats.Domain.Services;
 using GitHubStats.Infrastructure.Configuration;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -66,20 +67,11 @@ public sealed class GitHubClient : IGitHubClient
             ["startTime"] = commitsYear.HasValue ? $"{commitsYear}-01-01T00:00:00Z" : null
         };
 
-        // Launch GraphQL and REST commit fetch in parallel when includeAllCommits is true
-        var graphQLTask = ExecuteGraphQLAsync<UserStatsResponse>(
+        var response = await ExecuteGraphQLAsync<UserStatsResponse>(
             GraphQLQueries.UserStatsQuery,
             variables,
             cancellationToken);
 
-        var commitsTask = includeAllCommits
-            ? FetchTotalCommitsAsync(username, cancellationToken)
-            : Task.FromResult(0);
-
-        // Await both in parallel
-        await Task.WhenAll(graphQLTask, commitsTask);
-
-        var response = graphQLTask.Result;
         if (response.Data?.User == null)
         {
             throw new UserNotFoundException(username);
@@ -95,10 +87,22 @@ public sealed class GitHubClient : IGitHubClient
             .Where(r => !allExcludedRepos.Contains(r.Name))
             .Sum(r => r.Stargazers.TotalCount);
 
-        // Use parallel-fetched commit count or GraphQL result
-        int totalCommits = includeAllCommits
-            ? commitsTask.Result
-            : user.Commits.TotalCommitContributions;
+        // If user has more than 100 repos, paginate to get accurate star count
+        if (user.Repositories.TotalCount > 100 && user.Repositories.PageInfo.HasNextPage)
+        {
+            totalStars += await FetchRemainingStarsAsync(username, user.Repositories.PageInfo.EndCursor!, allExcludedRepos, cancellationToken);
+        }
+
+        // Fetch all commits if requested
+        int totalCommits;
+        if (includeAllCommits)
+        {
+            totalCommits = await FetchTotalCommitsAsync(username, cancellationToken);
+        }
+        else
+        {
+            totalCommits = user.Commits.TotalCommitContributions;
+        }
 
         var totalIssues = user.OpenIssues.TotalCount + user.ClosedIssues.TotalCount;
         var totalPRsMerged = includeMergedPRs ? user.MergedPullRequests?.TotalCount ?? 0 : 0;
@@ -192,6 +196,7 @@ public sealed class GitHubClient : IGitHubClient
         IReadOnlyList<string>? excludeRepos = null,
         double sizeWeight = 1,
         double countWeight = 0,
+        bool includeForks = false,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -201,7 +206,9 @@ public sealed class GitHubClient : IGitHubClient
 
         var variables = new Dictionary<string, object?>
         {
-            ["login"] = username
+            ["login"] = username,
+            ["after"] = null,
+            ["isFork"] = includeForks ? (bool?)null : false
         };
 
         var response = await ExecuteGraphQLAsync<TopLanguagesResponse>(
@@ -221,36 +228,31 @@ public sealed class GitHubClient : IGitHubClient
         // Aggregate language data
         var languageData = new Dictionary<string, (string Color, long Size, int Count)>();
 
+        var pageInfo = response.Data.User.Repositories.PageInfo;
         foreach (var repo in response.Data.User.Repositories.Nodes)
         {
-            // Skip archived repositories - they typically contain old/inactive code
-            if (repo.IsArchived)
-                continue;
+            ProcessRepoLanguages(repo, languageData, allExcludedRepos);
+        }
 
-            // Skip explicitly excluded repositories
-            if (allExcludedRepos.Contains(repo.Name))
-                continue;
+        while (pageInfo.HasNextPage)
+        {
+            variables["after"] = pageInfo.EndCursor;
+            var nextResponse = await ExecuteGraphQLAsync<TopLanguagesResponse>(
+                GraphQLQueries.TopLanguagesQuery,
+                variables,
+                cancellationToken);
 
-            foreach (var langEdge in repo.Languages.Edges)
+            if (nextResponse.Data?.User == null) break;
+
+            foreach (var repo in nextResponse.Data.User.Repositories.Nodes)
             {
-                var langName = langEdge.Node.Name;
-                var langColor = langEdge.Node.Color ?? "#858585";
-                var size = langEdge.Size;
-
-                if (languageData.TryGetValue(langName, out var existing))
-                {
-                    // Preserve the first color encountered for this language
-                    languageData[langName] = (existing.Color, existing.Size + size, existing.Count + 1);
-                }
-                else
-                {
-                    languageData[langName] = (langColor, size, 1);
-                }
+                ProcessRepoLanguages(repo, languageData, allExcludedRepos);
             }
+            pageInfo = nextResponse.Data.User.Repositories.PageInfo;
         }
 
         // Apply weights and sort
-        var languages = languageData
+        var languagesList = languageData
             .Select(kvp => new
             {
                 Name = kvp.Key,
@@ -262,9 +264,9 @@ public sealed class GitHubClient : IGitHubClient
             .OrderByDescending(l => l.WeightedSize)
             .ToList();
 
-        var totalSize = languages.Sum(l => l.OriginalSize);
+        var totalSize = languagesList.Sum(l => l.OriginalSize);
 
-        var result = languages.Select(l => new LanguageStats
+        var result = languagesList.Select(l => new LanguageStats
         {
             Name = l.Name,
             Color = l.Color,
@@ -278,6 +280,29 @@ public sealed class GitHubClient : IGitHubClient
             Languages = result,
             TotalSize = totalSize
         };
+    }
+
+    private static void ProcessRepoLanguages(TopLangsRepoNode repo, Dictionary<string, (string Color, long Size, int Count)> languageData, HashSet<string> allExcludedRepos)
+    {
+        if (repo.IsArchived || allExcludedRepos.Contains(repo.Name))
+            return;
+
+        foreach (var langEdge in repo.Languages.Edges)
+        {
+            var langName = langEdge.Node.Name;
+            var langColor = langEdge.Node.Color ?? "#858585";
+            var size = langEdge.Size;
+
+            if (languageData.TryGetValue(langName, out var existing))
+            {
+                languageData[langName] = (existing.Color, existing.Size + size, existing.Count + 1);
+            }
+            else
+            {
+                languageData[langName] = (langColor, size, 1);
+            }
+        }
+
     }
 
     public async Task<Gist> GetGistAsync(
@@ -351,35 +376,13 @@ public sealed class GitHubClient : IGitHubClient
         }
 
         var currentYear = DateTime.UtcNow.Year;
+        var minYear = startingYear ?? 2005; // Git was created in 2005
 
-        // Fetch user creation date first (lightweight query) to avoid querying unnecessary years
-        int minYear;
-        if (startingYear.HasValue)
-        {
-            minYear = startingYear.Value;
-        }
-        else
-        {
-            var createdAtResponse = await ExecuteGraphQLAsync<UserCreatedAtResponse>(
-                GraphQLQueries.UserCreatedAtQuery,
-                new Dictionary<string, object?> { ["login"] = username },
-                cancellationToken);
-
-            if (createdAtResponse.Data?.User == null)
-            {
-                throw new UserNotFoundException(username);
-            }
-
-            minYear = DateTime.TryParse(createdAtResponse.Data.User.CreatedAt, out var createdDate)
-                ? createdDate.Year
-                : 2005;
-        }
-
-        // Build years to fetch based on actual user creation year
+        // Build initial years to fetch - we'll include createdAt in first batch to optimize
         var yearsToFetch = Enumerable.Range(minYear, currentYear - minYear + 1).ToList();
 
-        // Use batched GraphQL queries - fetch up to 15 years per request in parallel
-        const int batchSize = 15;
+        // Use batched GraphQL queries - fetch up to 10 years per request in parallel
+        const int batchSize = 10;
         var batches = yearsToFetch
             .Select((year, index) => new { year, index })
             .GroupBy(x => x.index / batchSize)
@@ -644,6 +647,33 @@ public sealed class GitHubClient : IGitHubClient
             firstContribution);
     }
 
+    private async Task<int> FetchRemainingStarsAsync(string username, string endCursor, HashSet<string> excludedRepos, CancellationToken cancellationToken)
+    {
+        var totalStars = 0;
+        var cursor = endCursor;
+        var hasNextPage = true;
+
+        while (hasNextPage)
+        {
+            var response = await ExecuteGraphQLAsync<UserStatsResponse>(
+                GraphQLQueries.ReposPaginationQuery,
+                new Dictionary<string, object?> { ["login"] = username, ["after"] = cursor },
+                cancellationToken);
+
+            if (response.Data?.User == null) break;
+
+            var repos = response.Data.User.Repositories;
+            totalStars += repos.Nodes
+                .Where(r => !excludedRepos.Contains(r.Name))
+                .Sum(r => r.Stargazers.TotalCount);
+
+            hasNextPage = repos.PageInfo.HasNextPage;
+            cursor = repos.PageInfo.EndCursor;
+        }
+
+        return totalStars;
+    }
+
     private async Task<int> FetchTotalCommitsAsync(string username, CancellationToken cancellationToken)
     {
         var token = _tokenRotator.GetNextToken();
@@ -831,6 +861,7 @@ internal sealed class TopLangsUserData
 internal sealed class TopLangsRepositoriesData
 {
     public required List<TopLangsRepoNode> Nodes { get; set; }
+    public required PageInfo PageInfo { get; set; }
 }
 
 internal sealed class TopLangsRepoNode
