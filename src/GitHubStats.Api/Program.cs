@@ -158,6 +158,36 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+// Redis connection diagnostic logging
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+{
+    try
+    {
+        // Use a short timeout for the startup check to avoid blocking
+        var options = StackExchange.Redis.ConfigurationOptions.Parse(cacheOptions.RedisConnectionString);
+        options.ConnectTimeout = 2000; 
+        
+        using var redis = StackExchange.Redis.ConnectionMultiplexer.Connect(options);
+        if (redis.IsConnected)
+        {
+            logger.LogInformation("Successfully connected to Redis at {Endpoint}", options.EndPoints.FirstOrDefault());
+        }
+        else
+        {
+            logger.LogWarning("Redis configuration found but failed to establish connection. Falling back to potential degraded state.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to connect to Redis during startup diagnostic.");
+    }
+}
+else
+{
+    logger.LogInformation("Redis not configured. Using in-memory cache.");
+}
+
 // Configure the HTTP request pipeline
 app.UseResponseCompression();
 app.UseCors("AllowAll");
