@@ -90,12 +90,12 @@ public sealed class CardRenderer : ICardRenderer
         var langsCount = Math.Min(options.LangsCount ?? 5, 20);
         var filteredLangs = FilterLanguages(languages.Languages, options.Hide, langsCount);
 
-        var (width, height) = CalculateTopLangsCardDimensions(filteredLangs.Count, options);
+        var (width, height) = CalculateTopLangsCardDimensions(filteredLangs, options);
 
         var card = new Card
         {
             Width = options.CardWidth ?? width,
-            Height = height,
+            Height = options.CardHeight ?? height,
             BorderRadius = options.BorderRadius ?? 4.5,
             Colors = colors,
             Title = options.CustomTitle ?? "Most Used Languages",
@@ -283,6 +283,15 @@ public sealed class CardRenderer : ICardRenderer
         if (options.Show?.Contains("reviews") == true)
             statItems.Add(("Total Reviews", FormatNumber(stats.TotalReviews, options.NumberFormat), Icons.Reviews, "reviews"));
 
+        if (options.Show?.Contains("discussions_started") == true)
+            statItems.Add(("Discussions Started", FormatNumber(stats.TotalDiscussionsStarted, options.NumberFormat), Icons.Discussions, "discussions_started"));
+
+        if (options.Show?.Contains("discussions_answered") == true)
+            statItems.Add(("Discussions Answered", FormatNumber(stats.TotalDiscussionsAnswered, options.NumberFormat), Icons.Discussions, "discussions_answered"));
+
+        if (options.Show?.Contains("prs_merged") == true)
+            statItems.Add(("Total PRs Merged", FormatNumber(stats.TotalPRsMerged, options.NumberFormat), Icons.PullRequest, "prs_merged"));
+
         // Filter out hidden stats
         if (options.Hide != null)
             statItems = statItems.Where(s => !options.Hide.Contains(s.TestId)).ToList();
@@ -424,6 +433,7 @@ public sealed class CardRenderer : ICardRenderer
     {
         return $@"
 .lang-name {{ font: 400 11px 'Segoe UI', Ubuntu, Sans-Serif; fill: #{colors.TextColor}; }}
+.lang-percent {{ font: 600 11px 'Segoe UI', Ubuntu, Sans-Serif; fill: #{colors.TextColor}; font-variant-numeric: tabular-nums; }}
 .stagger {{ opacity: 0; animation: fadeInAnimation 0.3s ease-in-out forwards; }}
 ";
     }
@@ -439,30 +449,48 @@ public sealed class CardRenderer : ICardRenderer
         return filtered.Take(count).ToList();
     }
 
-    private static (int width, int height) CalculateTopLangsCardDimensions(int langCount, TopLanguagesCardOptions options)
+    private static (int width, int height) CalculateTopLangsCardDimensions(List<LanguageStats> langs, TopLanguagesCardOptions options)
     {
-        var width = options.CardWidth ?? 300;
+        var langCount = langs.Count;
+        var longestName = langs.Any() ? langs.Max(l => l.Name.Length) : 0;
+        
+        // Dynamic width estimation
+        int estimatedNameWidth = (int)(longestName * 8.5); 
+        int width = options.CardWidth ?? 300;
         int height;
 
+        // Base height needed for the content itself
+        int contentHeight;
         switch (options.Layout)
         {
             case "compact":
-                height = 90 + (int)Math.Ceiling(langCount / 2.0) * 25;
+                int minCompactWidth = (estimatedNameWidth + 100) * 2;
+                width = options.CardWidth ?? Math.Max(300, minCompactWidth);
+                contentHeight = 35 + (int)Math.Ceiling(langCount / 2.0) * 25; // Bar(10) + Space(25) + Labels
                 break;
             case "donut":
-                height = 215 + Math.Max(langCount - 5, 0) * 32;
-                width = Math.Max(width, 350);
+                int minDonutWidth = 240 + estimatedNameWidth + 60;
+                width = options.CardWidth ?? Math.Max(350, minDonutWidth);
+                contentHeight = Math.Max(210, langCount * 25 + 20); // Center chart at 105
                 break;
             case "donut-vertical":
             case "pie":
-                height = 300 + (int)Math.Ceiling(langCount / 2.0) * 25;
+                int minVerticalWidth = (estimatedNameWidth + 90) * 2;
+                width = options.CardWidth ?? Math.Max(300, minVerticalWidth);
+                contentHeight = 220 + (int)Math.Ceiling(langCount / 2.0) * 25;
                 break;
-            default:
-                height = 45 + (langCount + 1) * 40;
+            default: // normal
+                width = options.CardWidth ?? 300;
+                contentHeight = (langCount * 45) + 10;
                 break;
         }
 
-        return (width, height);
+        // Add padding for header
+        // Card.cs adds 55px (PaddingY + 20) for title, or 25px (PaddingX) if hidden.
+        // It also subtracts 30px from total height if hidden.
+        height = options.HideTitle ? contentHeight + 25 + 30 : contentHeight + 55;
+
+        return (width, options.CardHeight ?? height);
     }
 
     private static string RenderTopLangsBody(List<LanguageStats> langs, TopLanguagesCardOptions options, int width)
@@ -477,6 +505,9 @@ public sealed class CardRenderer : ICardRenderer
         return options.Layout switch
         {
             "compact" => RenderCompactLayout(langs, totalSize, width, options),
+            "donut" => RenderDonutLayout(langs, totalSize, width, options, isDonut: true),
+            "donut-vertical" => RenderDonutVerticalLayout(langs, totalSize, width, options),
+            "pie" => RenderDonutLayout(langs, totalSize, width, options, isDonut: false),
             _ => RenderNormalLayout(langs, totalSize, width, options)
         };
     }
@@ -488,6 +519,7 @@ public sealed class CardRenderer : ICardRenderer
 
         var y = 0;
         var staggerDelay = 450;
+        var barWidth = width - (options.HideProgress ? 50 : 130);
 
         foreach (var lang in langs)
         {
@@ -498,19 +530,22 @@ public sealed class CardRenderer : ICardRenderer
 
             body.Append($@"<g class=""stagger"" style=""animation-delay: {staggerDelay}ms"" transform=""translate(0, {y})"">");
             body.Append($@"<text class=""lang-name"" x=""2"" y=""15"">{HttpUtility.HtmlEncode(lang.Name)}</text>");
-            body.Append($@"<text class=""lang-name"" x=""{width - 120}"" y=""34"">{displayValue}</text>");
-
-            // Progress bar - ensure percentage is never negative or exceeds 100%
-            var progressWidth = width - 120;
-            var safePercent = Math.Max(0, Math.Min(100, percent));
-            var progress = progressWidth * safePercent / 100;
             
-            body.Rect(0, 25, progressWidth, 8, fill: "#ddd", rx: 5);
+            if (!options.HideProgress)
+            {
+                body.Append($@"<text class=""lang-percent"" x=""{barWidth + 15}"" y=""34"">{displayValue}</text>");
+            }
+
+            // Progress bar
+            var safePercent = Math.Max(0, Math.Min(100, percent));
+            var progress = barWidth * safePercent / 100;
+            
+            body.Rect(0, 25, barWidth, 8, fill: "#ddd", rx: 5);
             body.Rect(0, 25, progress, 8, fill: lang.Color, rx: 5);
 
             body.Append("</g>");
 
-            y += 40;
+            y += 45; // Increased from 40 for better spacing
             staggerDelay += 150;
         }
 
@@ -523,43 +558,35 @@ public sealed class CardRenderer : ICardRenderer
         using var body = new SvgBuilder(2048);
 
         // Progress bar - proportional segment allocation
-        var barWidth = width - 75;
+        var barWidth = width - 50;
         body.Append($@"<mask id=""rect-mask""><rect x=""0"" y=""0"" width=""{barWidth}"" height=""8"" fill=""white"" rx=""5""/></mask>");
+        body.StartGroup(transform: "translate(25, 0)");
 
-        // Calculate proportional widths for each language segment
-        var segments = new List<(int LanguageIndex, double Width)>();
         double progressX = 0;
-
         for (var i = 0; i < langs.Count; i++)
         {
             var lang = langs[i];
             var percent = totalSize > 0 ? (double)lang.Size / totalSize : 0;
             var segmentWidth = barWidth * percent;
 
-            // Ensure minimum visibility (2px) for very small segments, but don't exceed bar width
-            if (segmentWidth < 2 && percent > 0)
-                segmentWidth = 2;
-
-            // Clamp to available remaining width
+            if (segmentWidth < 2 && percent > 0) segmentWidth = 2;
             var remainingWidth = barWidth - progressX;
-            if (segmentWidth > remainingWidth)
-                segmentWidth = remainingWidth;
+            if (segmentWidth > remainingWidth) segmentWidth = remainingWidth;
 
             if (segmentWidth > 0)
             {
-                body.Rect(progressX, 0, segmentWidth, 8, fill: lang.Color);
+                body.Append($@"<rect x=""{progressX}"" y=""0"" width=""{segmentWidth}"" height=""8"" fill=""{lang.Color}"" mask=""url(#rect-mask)""/>");
                 progressX += segmentWidth;
             }
-
-            segments.Add((i, segmentWidth));
         }
+        body.EndGroup();
 
-        // Language labels in two columns
-        body.StartGroup(transform: "translate(0, 25)");
+        // Language labels
+        body.StartGroup(transform: "translate(25, 25)");
 
         var col1Y = 0;
         var col2Y = 0;
-        var col2X = width / 2;
+        var col2X = (width - 50) / 2;
 
         for (var i = 0; i < langs.Count; i++)
         {
@@ -567,24 +594,133 @@ public sealed class CardRenderer : ICardRenderer
             var percent = totalSize > 0 ? (double)lang.Size / totalSize * 100 : 0;
             var displayValue = options.StatsFormat == "bytes"
                 ? FormatBytes(lang.Size)
-                : $"{percent:F2}%";
+                : $"{percent:F1}%";
 
             var isLeftCol = i % 2 == 0;
             var x = isLeftCol ? 0 : col2X;
             var y = isLeftCol ? col1Y : col2Y;
 
             body.Circle(x + 5, y + 6, 5, fill: lang.Color);
-            body.Append($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(lang.Name)} {(options.HideProgress ? "" : displayValue)}</text>");
+            var labelText = options.HideProgress ? lang.Name : $"{lang.Name} {displayValue}";
+            body.Append($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(labelText)}</text>");
 
-            if (isLeftCol)
-                col1Y += 25;
-            else
-                col2Y += 25;
+            if (isLeftCol) col1Y += 25; else col2Y += 25;
         }
 
         body.EndGroup();
+        return body.ToString();
+    }
+
+    private static string RenderDonutLayout(List<LanguageStats> langs, long totalSize, int width, TopLanguagesCardOptions options, bool isDonut)
+    {
+        using var body = new SvgBuilder(4096);
+        const double radius = 80;
+        const double cx = 100;
+        const double cy = 105; // Increased offset from top
+        var innerRadius = isDonut ? 50 : 0;
+
+        // Draw segments
+        body.StartGroup(transform: "translate(25, 0)");
+        double currentAngle = -Math.PI / 2;
+        
+        foreach (var lang in langs)
+        {
+            var percent = totalSize > 0 ? (double)lang.Size / totalSize : 0;
+            if (percent <= 0) continue;
+
+            var sweepAngle = 2 * Math.PI * percent;
+            var endAngle = currentAngle + sweepAngle;
+            
+            body.Append(RenderDonutSegment(cx, cy, radius, innerRadius, currentAngle, endAngle, lang.Color));
+            currentAngle = endAngle;
+        }
+
+        // Legends
+        var legendX = cx + radius + 40;
+        var legendY = 25; // Adjusted legend start position
+        foreach (var lang in langs)
+        {
+            var percent = totalSize > 0 ? (double)lang.Size / totalSize * 100 : 0;
+            var displayValue = options.StatsFormat == "bytes"
+                ? FormatBytes(lang.Size)
+                : $"{percent:F1}%";
+
+            body.Circle(legendX, legendY - 4, 5, fill: lang.Color);
+            body.Append($@"<text class=""lang-name"" x=""{legendX + 15}"" y=""{legendY}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>");
+            legendY += 25;
+        }
+
+        body.EndGroup();
+        return body.ToString();
+    }
+
+    private static string RenderDonutVerticalLayout(List<LanguageStats> langs, long totalSize, int width, TopLanguagesCardOptions options)
+    {
+        using var body = new SvgBuilder(4096);
+        const double radius = 80;
+        var cx = width / 2.0;
+        const double cy = 100;
+
+        // Donut at top
+        double currentAngle = -Math.PI / 2;
+        foreach (var lang in langs)
+        {
+            var percent = totalSize > 0 ? (double)lang.Size / totalSize : 0;
+            if (percent <= 0) continue;
+
+            var sweepAngle = 2 * Math.PI * percent;
+            var endAngle = currentAngle + sweepAngle;
+            body.Append(RenderDonutSegment(cx, cy, radius, 50, currentAngle, endAngle, lang.Color));
+            currentAngle = endAngle;
+        }
+
+        // Legend below in two columns
+        body.StartGroup(transform: $"translate(25, {cy + radius + 30})");
+        var colWidth = (width - 50) / 2.0;
+        for (var i = 0; i < langs.Count; i++)
+        {
+            var lang = langs[i];
+            var percent = totalSize > 0 ? (double)lang.Size / totalSize * 100 : 0;
+            var displayValue = options.StatsFormat == "bytes"
+                ? FormatBytes(lang.Size)
+                : $"{percent:F1}%";
+
+            var isLeft = i % 2 == 0;
+            var x = isLeft ? 0 : colWidth;
+            var y = (i / 2) * 25;
+
+            body.Circle(x + 5, y + 6, 5, fill: lang.Color);
+            body.Append($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>");
+        }
+        body.EndGroup();
 
         return body.ToString();
+    }
+
+    private static string RenderDonutSegment(double cx, double cy, double outerR, double innerR, double startAngle, double endAngle, string fill)
+    {
+        // Handle full circle case to prevent path artifacts
+        if (endAngle - startAngle >= 2 * Math.PI - 0.0001)
+        {
+            if (innerR > 0)
+                return $@"<path d=""M {cx} {cy - outerR} A {outerR} {outerR} 0 1 1 {cx - 0.01} {cy - outerR} M {cx} {cy - innerR} A {innerR} {innerR} 0 1 0 {cx - 0.01} {cy - innerR} Z"" fill=""{fill}""/>";
+            else
+                return $@"<circle cx=""{cx}"" cy=""{cy}"" r=""{outerR}"" fill=""{fill}""/>";
+        }
+
+        var x1 = cx + outerR * Math.Cos(startAngle);
+        var y1 = cy + outerR * Math.Sin(startAngle);
+        var x2 = cx + outerR * Math.Cos(endAngle);
+        var y2 = cy + outerR * Math.Sin(endAngle);
+
+        var x3 = cx + innerR * Math.Cos(endAngle);
+        var y3 = cy + innerR * Math.Sin(endAngle);
+        var x4 = cx + innerR * Math.Cos(startAngle);
+        var y4 = cy + innerR * Math.Sin(startAngle);
+
+        var largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+
+        return $@"<path d=""M {x1} {y1} A {outerR} {outerR} 0 {largeArc} 1 {x2} {y2} L {x3} {y3} A {innerR} {innerR} 0 {largeArc} 0 {x4} {y4} Z"" fill=""{fill}""/>";
     }
 
     #endregion
