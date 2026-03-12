@@ -110,7 +110,7 @@ Add to your GitHub README:
 | `show`                | Comma-separated list of extra stats to show (`reviews`, `prs_merged`, `discussions_started`, `discussions_answered`) | -         |
 | `hide_rank`           | Hide the ranking circle                                                                                              | `false`   |
 | `show_icons`          | Show icons next to stat labels                                                                                       | `false`   |
-| `include_all_commits` | Count total commits instead of just last year                                                                        | `false`   |
+| `include_all_commits` | Count total commits instead of just last year (Used for rank calculation)                                            | `false`   |
 | `commits_year`        | Count commits for a specific year                                                                                    | -         |
 | `number_format`       | Format for numbers (`short`, `long`)                                                                                 | `short`   |
 | `text_bold`           | Whether to use bold text                                                                                             | `true`    |
@@ -134,6 +134,7 @@ Add to your GitHub README:
 | `exclude_repo`       | Comma-separated list of repositories to exclude                     | -             |
 | `size_weight`        | Weight for code size in ranking                                     | `1`           |
 | `count_weight`       | Weight for repo count in ranking                                    | `0`           |
+| `include_forks`      | Include languages from forked repositories                          | `false`       |
 | `hide_progress`      | Hide progress bar/stats in `compact` layout                         | `false`       |
 | `stats_format`       | Format for stats (`percentages`, `bytes`)                           | `percentages` |
 | `hide_title`         | Hide the card title                                                 | `false`       |
@@ -145,6 +146,30 @@ Add to your GitHub README:
 | `theme`              | Card theme                                                          | `default`     |
 | `cache_seconds`      | Custom cache TTL in seconds                                         | `1800`        |
 | `disable_animations` | Disable animations                                                  | `false`       |
+
+### Repository Card Options
+
+| Parameter                | Description                                     | Default            |
+|--------------------------|-------------------------------------------------|--------------------|
+| `username`               | GitHub username (required)                      | -                  |
+| `repo`                   | Repository name (required)                      | -                  |
+| `theme`                  | Card theme                                      | `default_repocard` |
+| `show_owner`             | Show the repository owner's username            | `false`            |
+| `description_lines_count`| Maximum number of lines for the description     | `3`                |
+| `hide_border`            | Hide the card border                            | `false`            |
+| `border_radius`          | Card corner radius                              | `4.5`              |
+| `cache_seconds`          | Custom cache TTL in seconds                     | `1800`             |
+
+### Gist Card Options
+
+| Parameter       | Description                          | Default            |
+|-----------------|--------------------------------------|--------------------|
+| `id`            | Gist ID (required)                   | -                  |
+| `theme`         | Card theme                           | `default_repocard` |
+| `show_owner`    | Show the gist owner's username       | `false`            |
+| `hide_border`   | Hide the card border                 | `false`            |
+| `border_radius` | Card corner radius                   | `4.5`              |
+| `cache_seconds` | Custom cache TTL in seconds          | `1800`             |
 
 ### Themes
 
