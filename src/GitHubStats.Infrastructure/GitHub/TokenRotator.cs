@@ -17,7 +17,7 @@ public sealed class TokenRotator
 
     public TokenRotator(IOptions<GitHubOptions> options)
     {
-        _tokens = options.Value.PersonalAccessTokens.ToArray();
+        _tokens = (options.Value.PersonalAccessTokens ?? []).Distinct().ToArray();
         if (_tokens.Length == 0)
         {
             throw new InvalidOperationException("At least one GitHub Personal Access Token is required.");

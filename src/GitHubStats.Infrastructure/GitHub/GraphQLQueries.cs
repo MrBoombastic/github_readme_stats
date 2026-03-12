@@ -110,9 +110,9 @@ public static class GraphQLQueries
         """;
 
     public const string TopLanguagesQuery = """
-        query userInfo($login: String!) {
+        query userInfo($login: String!, $after: String, $isFork: Boolean) {
             user(login: $login) {
-                repositories(ownerAffiliations: OWNER, isFork: false, first: 100, orderBy: {field: UPDATED_AT, direction: DESC}) {
+                repositories(ownerAffiliations: OWNER, isFork: $isFork, first: 100, orderBy: {field: UPDATED_AT, direction: DESC}, after: $after) {
                     nodes {
                         name
                         isArchived
@@ -125,6 +125,10 @@ public static class GraphQLQueries
                                 }
                             }
                         }
+                    }
+                    pageInfo {
+                        hasNextPage
+                        endCursor
                     }
                 }
             }
