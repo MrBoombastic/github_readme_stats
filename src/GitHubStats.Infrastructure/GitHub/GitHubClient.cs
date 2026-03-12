@@ -6,6 +6,7 @@ using GitHubStats.Domain.Exceptions;
 using GitHubStats.Domain.Interfaces;
 using GitHubStats.Domain.Services;
 using GitHubStats.Infrastructure.Configuration;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -85,6 +86,12 @@ public sealed class GitHubClient : IGitHubClient
         var totalStars = user.Repositories.Nodes
             .Where(r => !allExcludedRepos.Contains(r.Name))
             .Sum(r => r.Stargazers.TotalCount);
+
+        // If user has more than 100 repos, paginate to get accurate star count
+        if (user.Repositories.TotalCount > 100 && user.Repositories.PageInfo.HasNextPage)
+        {
+            totalStars += await FetchRemainingStarsAsync(username, user.Repositories.PageInfo.EndCursor!, allExcludedRepos, cancellationToken);
+        }
 
         // Fetch all commits if requested
         int totalCommits;
@@ -189,6 +196,7 @@ public sealed class GitHubClient : IGitHubClient
         IReadOnlyList<string>? excludeRepos = null,
         double sizeWeight = 1,
         double countWeight = 0,
+        bool includeForks = false,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -198,7 +206,9 @@ public sealed class GitHubClient : IGitHubClient
 
         var variables = new Dictionary<string, object?>
         {
-            ["login"] = username
+            ["login"] = username,
+            ["after"] = null,
+            ["isFork"] = includeForks ? (bool?)null : false
         };
 
         var response = await ExecuteGraphQLAsync<TopLanguagesResponse>(
@@ -218,36 +228,31 @@ public sealed class GitHubClient : IGitHubClient
         // Aggregate language data
         var languageData = new Dictionary<string, (string Color, long Size, int Count)>();
 
+        var pageInfo = response.Data.User.Repositories.PageInfo;
         foreach (var repo in response.Data.User.Repositories.Nodes)
         {
-            // Skip archived repositories - they typically contain old/inactive code
-            if (repo.IsArchived)
-                continue;
+            ProcessRepoLanguages(repo, languageData, allExcludedRepos);
+        }
 
-            // Skip explicitly excluded repositories
-            if (allExcludedRepos.Contains(repo.Name))
-                continue;
+        while (pageInfo.HasNextPage)
+        {
+            variables["after"] = pageInfo.EndCursor;
+            var nextResponse = await ExecuteGraphQLAsync<TopLanguagesResponse>(
+                GraphQLQueries.TopLanguagesQuery,
+                variables,
+                cancellationToken);
 
-            foreach (var langEdge in repo.Languages.Edges)
+            if (nextResponse.Data?.User == null) break;
+
+            foreach (var repo in nextResponse.Data.User.Repositories.Nodes)
             {
-                var langName = langEdge.Node.Name;
-                var langColor = langEdge.Node.Color ?? "#858585";
-                var size = langEdge.Size;
-
-                if (languageData.TryGetValue(langName, out var existing))
-                {
-                    // Preserve the first color encountered for this language
-                    languageData[langName] = (existing.Color, existing.Size + size, existing.Count + 1);
-                }
-                else
-                {
-                    languageData[langName] = (langColor, size, 1);
-                }
+                ProcessRepoLanguages(repo, languageData, allExcludedRepos);
             }
+            pageInfo = nextResponse.Data.User.Repositories.PageInfo;
         }
 
         // Apply weights and sort
-        var languages = languageData
+        var languagesList = languageData
             .Select(kvp => new
             {
                 Name = kvp.Key,
@@ -259,9 +264,9 @@ public sealed class GitHubClient : IGitHubClient
             .OrderByDescending(l => l.WeightedSize)
             .ToList();
 
-        var totalSize = languages.Sum(l => l.OriginalSize);
+        var totalSize = languagesList.Sum(l => l.OriginalSize);
 
-        var result = languages.Select(l => new LanguageStats
+        var result = languagesList.Select(l => new LanguageStats
         {
             Name = l.Name,
             Color = l.Color,
@@ -275,6 +280,29 @@ public sealed class GitHubClient : IGitHubClient
             Languages = result,
             TotalSize = totalSize
         };
+    }
+
+    private static void ProcessRepoLanguages(TopLangsRepoNode repo, Dictionary<string, (string Color, long Size, int Count)> languageData, HashSet<string> allExcludedRepos)
+    {
+        if (repo.IsArchived || allExcludedRepos.Contains(repo.Name))
+            return;
+
+        foreach (var langEdge in repo.Languages.Edges)
+        {
+            var langName = langEdge.Node.Name;
+            var langColor = langEdge.Node.Color ?? "#858585";
+            var size = langEdge.Size;
+
+            if (languageData.TryGetValue(langName, out var existing))
+            {
+                languageData[langName] = (existing.Color, existing.Size + size, existing.Count + 1);
+            }
+            else
+            {
+                languageData[langName] = (langColor, size, 1);
+            }
+        }
+
     }
 
     public async Task<Gist> GetGistAsync(
@@ -619,6 +647,33 @@ public sealed class GitHubClient : IGitHubClient
             firstContribution);
     }
 
+    private async Task<int> FetchRemainingStarsAsync(string username, string endCursor, HashSet<string> excludedRepos, CancellationToken cancellationToken)
+    {
+        var totalStars = 0;
+        var cursor = endCursor;
+        var hasNextPage = true;
+
+        while (hasNextPage)
+        {
+            var response = await ExecuteGraphQLAsync<UserStatsResponse>(
+                GraphQLQueries.ReposPaginationQuery,
+                new Dictionary<string, object?> { ["login"] = username, ["after"] = cursor },
+                cancellationToken);
+
+            if (response.Data?.User == null) break;
+
+            var repos = response.Data.User.Repositories;
+            totalStars += repos.Nodes
+                .Where(r => !excludedRepos.Contains(r.Name))
+                .Sum(r => r.Stargazers.TotalCount);
+
+            hasNextPage = repos.PageInfo.HasNextPage;
+            cursor = repos.PageInfo.EndCursor;
+        }
+
+        return totalStars;
+    }
+
     private async Task<int> FetchTotalCommitsAsync(string username, CancellationToken cancellationToken)
     {
         var token = _tokenRotator.GetNextToken();
@@ -806,6 +861,7 @@ internal sealed class TopLangsUserData
 internal sealed class TopLangsRepositoriesData
 {
     public required List<TopLangsRepoNode> Nodes { get; set; }
+    public required PageInfo PageInfo { get; set; }
 }
 
 internal sealed class TopLangsRepoNode
