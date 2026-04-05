@@ -1,8 +1,9 @@
 using GitHubStats.Application.Services;
+using GitHubStats.Domain.Entities;
 using GitHubStats.Domain.Exceptions;
 using GitHubStats.Domain.Interfaces;
+using GitHubStats.Infrastructure.BackgroundFetch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace GitHubStats.Api.Endpoints;
@@ -40,6 +41,8 @@ public static class StatsEndpoint
             [FromQuery(Name = "card_width")] int? cardWidth,
             StatsCardService service,
             ICardRenderer renderer,
+            ICacheService cacheService,
+            BackgroundFetchQueue fetchQueue,
             HttpContext context,
             CancellationToken cancellationToken) =>
         {
@@ -51,68 +54,72 @@ public static class StatsEndpoint
                     "image/svg+xml");
             }
 
-            try
+            var options = new StatsCardOptions
             {
-                var options = new StatsCardOptions
-                {
-                    Theme = theme,
-                    TitleColor = titleColor,
-                    TextColor = textColor,
-                    IconColor = iconColor,
-                    BgColor = bgColor,
-                    BorderColor = borderColor,
-                    BorderRadius = borderRadius,
-                    HideBorder = hideBorder ?? false,
-                    HideTitle = hideTitle ?? false,
-                    Locale = locale,
-                    DisableAnimations = disableAnimations ?? false,
-                    Hide = hide?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
-                    Show = show?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
-                    ShowIcons = showIcons ?? false,
-                    HideRank = hideRank ?? false,
-                    IncludeAllCommits = includeAllCommits ?? false,
-                    CommitsYear = commitsYear,
-                    LineHeight = lineHeight,
-                    CardWidth = cardWidth,
-                    RingColor = ringColor,
-                    TextBold = textBold ?? true,
-                    NumberFormat = numberFormat ?? "short",
-                    RankIcon = rankIcon ?? "default"
-                };
+                Theme = theme,
+                TitleColor = titleColor,
+                TextColor = textColor,
+                IconColor = iconColor,
+                BgColor = bgColor,
+                BorderColor = borderColor,
+                BorderRadius = borderRadius,
+                HideBorder = hideBorder ?? false,
+                HideTitle = hideTitle ?? false,
+                Locale = locale,
+                DisableAnimations = disableAnimations ?? false,
+                Hide = hide?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                Show = show?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                ShowIcons = showIcons ?? false,
+                HideRank = hideRank ?? false,
+                IncludeAllCommits = includeAllCommits ?? false,
+                CommitsYear = commitsYear,
+                LineHeight = lineHeight,
+                CardWidth = cardWidth,
+                RingColor = ringColor,
+                TextBold = textBold ?? true,
+                NumberFormat = numberFormat ?? "short",
+                RankIcon = rankIcon ?? "default"
+            };
 
-                var excludeRepos = excludeRepo?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var excludeRepos = excludeRepo?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var incAllCommits = includeAllCommits ?? false;
+            var incMergedPRs = show?.Contains("prs_merged") ?? false;
+            var incDiscussions = show?.Contains("discussions_started") ?? false;
+            var incDiscussionsAnswers = show?.Contains("discussions_answered") ?? false;
+            var cacheDuration = cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : TimeSpan.FromDays(1);
 
-                var svg = await service.GenerateCardAsync(
-                    username,
-                    options,
-                    includeAllCommits ?? false,
-                    excludeRepos,
-                    show?.Contains("prs_merged") ?? false,
-                    show?.Contains("discussions_started") ?? false,
-                    show?.Contains("discussions_answered") ?? false,
-                    commitsYear,
-                    cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : null,
-                    cancellationToken);
+            var cacheKey = StatsCardService.GenerateCacheKey(
+                username, incAllCommits, excludeRepos, incMergedPRs,
+                incDiscussions, incDiscussionsAnswers, commitsYear);
 
-                // Set cache headers
+            // Try cache first (instant)
+            var cached = await cacheService.GetAsync<UserStats>(cacheKey, cancellationToken);
+            if (cached != null)
+            {
+                // Cache hit - render and return immediately
+                var svg = renderer.RenderStatsCard(cached, options);
                 SetCacheHeaders(context, cacheSeconds ?? 1800);
-
                 context.Response.ContentType = "image/svg+xml";
                 return Results.Content(svg, "image/svg+xml");
             }
-            catch (DomainException ex)
-            {
-                SetErrorCacheHeaders(context);
-                context.Response.ContentType = "image/svg+xml";
-                return Results.Content(
-                    renderer.RenderErrorCard(ex.Message),
-                    "image/svg+xml");
-            }
+
+            // Cache miss - enqueue this specific fetch + pre-fetch all card types for this user
+            fetchQueue.TryEnqueue(new StatsFetchRequest(
+                cacheKey, username, incAllCommits, excludeRepos,
+                incMergedPRs, incDiscussions, incDiscussionsAnswers,
+                commitsYear, cacheDuration));
+            fetchQueue.EnqueueAllForUser(username);
+
+            SetLoadingCacheHeaders(context);
+            context.Response.ContentType = "image/svg+xml";
+            return Results.Content(
+                renderer.RenderLoadingCard("stats", theme, bgColor, textColor, borderColor,
+                    hideBorder ?? false, borderRadius),
+                "image/svg+xml");
         })
         .WithName("GetStats")
         .WithTags("Stats")
-        .RequireRateLimiting("stats")
-        .CacheOutput("StatsCard");
+        .RequireRateLimiting("stats");
     }
 
     private static void SetCacheHeaders(HttpContext context, int seconds)
@@ -120,8 +127,9 @@ public static class StatsEndpoint
         context.Response.Headers.CacheControl = $"max-age={seconds}, s-maxage={seconds}, stale-while-revalidate=86400";
     }
 
-    private static void SetErrorCacheHeaders(HttpContext context)
+    private static void SetLoadingCacheHeaders(HttpContext context)
     {
-        context.Response.Headers.CacheControl = "max-age=600, s-maxage=600, stale-while-revalidate=86400";
+        // Short TTL so browsers/CDN proxies retry quickly after background fetch completes
+        context.Response.Headers.CacheControl = "max-age=1, s-maxage=1, stale-while-revalidate=0";
     }
 }

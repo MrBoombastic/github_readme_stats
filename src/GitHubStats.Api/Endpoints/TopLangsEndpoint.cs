@@ -1,8 +1,9 @@
 using GitHubStats.Application.Services;
+using GitHubStats.Domain.Entities;
 using GitHubStats.Domain.Exceptions;
 using GitHubStats.Domain.Interfaces;
+using GitHubStats.Infrastructure.BackgroundFetch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace GitHubStats.Api.Endpoints;
@@ -36,6 +37,8 @@ public static class TopLangsEndpoint
             [FromQuery(Name = "stats_format")] string? statsFormat,
             TopLanguagesCardService service,
             ICardRenderer renderer,
+            ICacheService cacheService,
+            BackgroundFetchQueue fetchQueue,
             HttpContext context,
             CancellationToken cancellationToken) =>
         {
@@ -67,58 +70,59 @@ public static class TopLangsEndpoint
                     "image/svg+xml");
             }
 
-            try
+            var options = new TopLanguagesCardOptions
             {
-                var options = new TopLanguagesCardOptions
-                {
-                    Theme = theme,
-                    TitleColor = titleColor,
-                    TextColor = textColor,
-                    BgColor = bgColor,
-                    BorderColor = borderColor,
-                    BorderRadius = borderRadius,
-                    HideBorder = hideBorder ?? false,
-                    HideTitle = hideTitle ?? false,
-                    CustomTitle = customTitle,
-                    Locale = locale,
-                    DisableAnimations = disableAnimations ?? false,
-                    Hide = hide?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
-                    Layout = layout ?? "normal",
-                    LangsCount = langsCount,
-                    CardWidth = cardWidth,
-                    HideProgress = hideProgress ?? false,
-                    StatsFormat = statsFormat ?? "percentages"
-                };
+                Theme = theme,
+                TitleColor = titleColor,
+                TextColor = textColor,
+                BgColor = bgColor,
+                BorderColor = borderColor,
+                BorderRadius = borderRadius,
+                HideBorder = hideBorder ?? false,
+                HideTitle = hideTitle ?? false,
+                CustomTitle = customTitle,
+                Locale = locale,
+                DisableAnimations = disableAnimations ?? false,
+                Hide = hide?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                Layout = layout ?? "normal",
+                LangsCount = langsCount,
+                CardWidth = cardWidth,
+                HideProgress = hideProgress ?? false,
+                StatsFormat = statsFormat ?? "percentages"
+            };
 
-                var excludeRepos = excludeRepo?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var excludeRepos = excludeRepo?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var sw = sizeWeight ?? 1;
+            var cw = countWeight ?? 0;
+            var cacheDuration = cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : TimeSpan.FromDays(6);
 
-                var svg = await service.GenerateCardAsync(
-                    username,
-                    options,
-                    excludeRepos,
-                    sizeWeight ?? 1,
-                    countWeight ?? 0,
-                    cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : null,
-                    cancellationToken);
+            var cacheKey = TopLanguagesCardService.GenerateCacheKey(username, excludeRepos, sw, cw);
 
+            // Try cache first (instant)
+            var cached = await cacheService.GetAsync<TopLanguages>(cacheKey, cancellationToken);
+            if (cached != null)
+            {
+                var svg = renderer.RenderTopLanguagesCard(cached, options);
                 SetCacheHeaders(context, cacheSeconds ?? 1800);
-
                 context.Response.ContentType = "image/svg+xml";
                 return Results.Content(svg, "image/svg+xml");
             }
-            catch (DomainException ex)
-            {
-                SetErrorCacheHeaders(context);
-                context.Response.ContentType = "image/svg+xml";
-                return Results.Content(
-                    renderer.RenderErrorCard(ex.Message),
-                    "image/svg+xml");
-            }
+
+            // Cache miss - enqueue this specific fetch + pre-fetch all card types for this user
+            fetchQueue.TryEnqueue(new TopLangsFetchRequest(
+                cacheKey, username, excludeRepos, sw, cw, cacheDuration));
+            fetchQueue.EnqueueAllForUser(username);
+
+            SetLoadingCacheHeaders(context);
+            context.Response.ContentType = "image/svg+xml";
+            return Results.Content(
+                renderer.RenderLoadingCard("top-langs", theme, bgColor, textColor, borderColor,
+                    hideBorder ?? false, borderRadius),
+                "image/svg+xml");
         })
         .WithName("GetTopLangs")
         .WithTags("Languages")
-        .RequireRateLimiting("perIp")
-        .CacheOutput("TopLangsCard");
+        .RequireRateLimiting("perIp");
     }
 
     private static void SetCacheHeaders(HttpContext context, int seconds)
@@ -126,8 +130,8 @@ public static class TopLangsEndpoint
         context.Response.Headers.CacheControl = $"max-age={seconds}, s-maxage={seconds}, stale-while-revalidate=86400";
     }
 
-    private static void SetErrorCacheHeaders(HttpContext context)
+    private static void SetLoadingCacheHeaders(HttpContext context)
     {
-        context.Response.Headers.CacheControl = "max-age=600, s-maxage=600, stale-while-revalidate=86400";
+        context.Response.Headers.CacheControl = "max-age=1, s-maxage=1, stale-while-revalidate=0";
     }
 }
