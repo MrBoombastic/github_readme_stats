@@ -1,8 +1,9 @@
 using GitHubStats.Application.Services;
+using GitHubStats.Domain.Entities;
 using GitHubStats.Domain.Exceptions;
 using GitHubStats.Domain.Interfaces;
+using GitHubStats.Infrastructure.BackgroundFetch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace GitHubStats.Api.Endpoints;
@@ -41,6 +42,8 @@ public static class StreakEndpoint
             [FromQuery(Name = "disable_animations")] bool? disableAnimations,
             StreakCardService service,
             ICardRenderer renderer,
+            ICacheService cacheService,
+            BackgroundFetchQueue fetchQueue,
             HttpContext context,
             CancellationToken cancellationToken) =>
         {
@@ -52,63 +55,63 @@ public static class StreakEndpoint
                     "image/svg+xml");
             }
 
-            try
+            var options = new StreakCardOptions
             {
-                var options = new StreakCardOptions
-                {
-                    Theme = theme,
-                    TitleColor = titleColor,
-                    TextColor = textColor,
-                    IconColor = iconColor,
-                    BgColor = bgColor,
-                    BorderColor = borderColor,
-                    BorderRadius = borderRadius,
-                    HideBorder = hideBorder ?? false,
-                    Locale = locale,
-                    DisableAnimations = disableAnimations ?? false,
-                    RingColor = ringColor,
-                    FireColor = fireColor,
-                    StrokeColor = strokeColor,
-                    CurrStreakNumColor = currStreakNumColor,
-                    SideNumsColor = sideNumsColor,
-                    CurrStreakLabelColor = currStreakLabelColor,
-                    SideLabelsColor = sideLabelsColor,
-                    DatesColor = datesColor,
-                    DateFormat = dateFormat ?? "M j[, Y]",
-                    CardWidth = cardWidth,
-                    CardHeight = cardHeight,
-                    HideTotalContributions = hideTotalContributions ?? false,
-                    HideCurrentStreak = hideCurrentStreak ?? false,
-                    HideLongestStreak = hideLongestStreak ?? false,
-                    StartingYear = startingYear
-                };
+                Theme = theme,
+                TitleColor = titleColor,
+                TextColor = textColor,
+                IconColor = iconColor,
+                BgColor = bgColor,
+                BorderColor = borderColor,
+                BorderRadius = borderRadius,
+                HideBorder = hideBorder ?? false,
+                Locale = locale,
+                DisableAnimations = disableAnimations ?? false,
+                RingColor = ringColor,
+                FireColor = fireColor,
+                StrokeColor = strokeColor,
+                CurrStreakNumColor = currStreakNumColor,
+                SideNumsColor = sideNumsColor,
+                CurrStreakLabelColor = currStreakLabelColor,
+                SideLabelsColor = sideLabelsColor,
+                DatesColor = datesColor,
+                DateFormat = dateFormat ?? "M j[, Y]",
+                CardWidth = cardWidth,
+                CardHeight = cardHeight,
+                HideTotalContributions = hideTotalContributions ?? false,
+                HideCurrentStreak = hideCurrentStreak ?? false,
+                HideLongestStreak = hideLongestStreak ?? false,
+                StartingYear = startingYear
+            };
 
-                var svg = await service.GenerateCardAsync(
-                    username,
-                    options,
-                    startingYear,
-                    cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : null,
-                    cancellationToken);
+            var cacheDuration = cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : TimeSpan.FromHours(3);
+            var cacheKey = StreakCardService.GenerateCacheKey(username, startingYear);
 
-                // Set cache headers (30 minutes default)
+            // Try cache first (instant)
+            var cached = await cacheService.GetAsync<StreakStats>(cacheKey, cancellationToken);
+            if (cached != null)
+            {
+                var svg = renderer.RenderStreakCard(cached, options);
                 SetCacheHeaders(context, cacheSeconds ?? 1800);
-
                 context.Response.ContentType = "image/svg+xml";
                 return Results.Content(svg, "image/svg+xml");
             }
-            catch (DomainException ex)
-            {
-                SetErrorCacheHeaders(context);
-                context.Response.ContentType = "image/svg+xml";
-                return Results.Content(
-                    renderer.RenderErrorCard(ex.Message),
-                    "image/svg+xml");
-            }
+
+            // Cache miss - enqueue this specific fetch + pre-fetch all card types for this user
+            fetchQueue.TryEnqueue(new StreakFetchRequest(
+                cacheKey, username, startingYear, cacheDuration));
+            fetchQueue.EnqueueAllForUser(username);
+
+            SetLoadingCacheHeaders(context);
+            context.Response.ContentType = "image/svg+xml";
+            return Results.Content(
+                renderer.RenderLoadingCard("streak", theme, bgColor, textColor, borderColor,
+                    hideBorder ?? false, borderRadius),
+                "image/svg+xml");
         })
         .WithName("GetStreak")
         .WithTags("Streak")
-        .RequireRateLimiting("perIp")
-        .CacheOutput("StreakCard");
+        .RequireRateLimiting("perIp");
     }
 
     private static void SetCacheHeaders(HttpContext context, int seconds)
@@ -116,8 +119,8 @@ public static class StreakEndpoint
         context.Response.Headers.CacheControl = $"max-age={seconds}, s-maxage={seconds}, stale-while-revalidate=86400";
     }
 
-    private static void SetErrorCacheHeaders(HttpContext context)
+    private static void SetLoadingCacheHeaders(HttpContext context)
     {
-        context.Response.Headers.CacheControl = "max-age=600, s-maxage=600, stale-while-revalidate=86400";
+        context.Response.Headers.CacheControl = "max-age=1, s-maxage=1, stale-while-revalidate=0";
     }
 }

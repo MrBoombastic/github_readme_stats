@@ -61,7 +61,7 @@ public sealed class StreakCardService
             cancellationToken);
     }
 
-    private static string GenerateCacheKey(string username, int? startingYear)
+    public static string GenerateCacheKey(string username, int? startingYear)
     {
         return $"streak:{username}:{startingYear}";
     }

@@ -33,6 +33,11 @@ public interface ICardRenderer
     string RenderStreakCard(StreakStats stats, StreakCardOptions options);
 
     /// <summary>
+    /// Renders a loading/placeholder card SVG for when data is being fetched in the background.
+    /// </summary>
+    string RenderLoadingCard(string cardType, string? theme = null, string? bgColor = null, string? textColor = null, string? borderColor = null, bool hideBorder = false, double? borderRadius = null);
+
+    /// <summary>
     /// Renders an error card SVG.
     /// </summary>
     string RenderErrorCard(string message, string? secondaryMessage = null, CardColors? colors = null);

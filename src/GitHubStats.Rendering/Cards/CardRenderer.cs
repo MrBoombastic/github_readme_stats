@@ -189,6 +189,80 @@ public sealed class CardRenderer : ICardRenderer
         return card.Render(RenderStreakCardBody(stats, options, colors, width, visualHeight, visibleSections));
     }
 
+    public string RenderLoadingCard(string cardType, string? theme = null, string? bgColor = null, string? textColor = null, string? borderColor = null, bool hideBorder = false, double? borderRadius = null)
+    {
+        var colors = ThemeManager.GetColors(theme, textColor: textColor, bgColor: bgColor, borderColor: borderColor);
+
+        var (width, height, title) = cardType.ToLowerInvariant() switch
+        {
+            "stats" => (450, 195, "GitHub Stats"),
+            "streak" => (495, 195, "GitHub Streak"),
+            "top-langs" or "langs" => (300, 285, "Top Languages"),
+            _ => (495, 195, "GitHub Stats")
+        };
+
+        var card = new Card
+        {
+            Width = width,
+            Height = height,
+            BorderRadius = borderRadius ?? 4.5,
+            Colors = colors,
+            Title = title,
+            HideBorder = hideBorder,
+            HideTitle = false,
+            DisableAnimations = false,
+            A11yTitle = $"Loading {title}",
+            A11yDesc = "Data is being generated, please refresh in a moment"
+        };
+
+        var cx = width / 2;
+        var cy = (height / 2) + 10;
+
+        card.CustomCss = $@"
+.loading-text {{
+    font: 600 14px 'Segoe UI', Ubuntu, Sans-Serif;
+    fill: #{colors.TextColor};
+    text-anchor: middle;
+    animation: pulse 1.5s ease-in-out infinite;
+}}
+.loading-sub {{
+    font: 400 11px 'Segoe UI', Ubuntu, Sans-Serif;
+    fill: #{colors.TextColor};
+    opacity: 0.6;
+    text-anchor: middle;
+}}
+@keyframes pulse {{
+    0%, 100% {{ opacity: 0.4; }}
+    50% {{ opacity: 1; }}
+}}
+.dot {{
+    fill: #{colors.IconColor};
+    animation: dotPulse 1.5s ease-in-out infinite;
+}}
+.dot2 {{ animation-delay: 0.2s; }}
+.dot3 {{ animation-delay: 0.4s; }}
+@keyframes dotPulse {{
+    0%, 100% {{ opacity: 0.2; r: 3; }}
+    50% {{ opacity: 1; r: 5; }}
+}}";
+
+        using var body = new SvgBuilder(512);
+        body.StartGroup(transform: $"translate(0, 0)");
+
+        // Animated dots
+        body.Append($@"<circle class=""dot"" cx=""{cx - 20}"" cy=""{cy - 15}"" r=""3""/>");
+        body.Append($@"<circle class=""dot dot2"" cx=""{cx}"" cy=""{cy - 15}"" r=""3""/>");
+        body.Append($@"<circle class=""dot dot3"" cx=""{cx + 20}"" cy=""{cy - 15}"" r=""3""/>");
+
+        // Loading text
+        body.Append($@"<text x=""{cx}"" y=""{cy + 10}"" class=""loading-text"">Generating...</text>");
+        body.Append($@"<text x=""{cx}"" y=""{cy + 30}"" class=""loading-sub"">Data will appear shortly</text>");
+
+        body.EndGroup();
+
+        return card.Render(body.ToString());
+    }
+
     public string RenderErrorCard(string message, string? secondaryMessage = null, CardColors? colors = null)
     {
         colors ??= ThemeManager.GetColors();

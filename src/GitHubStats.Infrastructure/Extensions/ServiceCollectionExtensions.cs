@@ -1,4 +1,5 @@
 using GitHubStats.Domain.Interfaces;
+using GitHubStats.Infrastructure.BackgroundFetch;
 using GitHubStats.Infrastructure.Caching;
 using GitHubStats.Infrastructure.Configuration;
 using GitHubStats.Infrastructure.GitHub;
@@ -74,6 +75,10 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddSingleton<ICacheService, RedisCacheService>();
+
+        // Background fetch queue and worker for non-blocking first requests
+        services.AddSingleton<BackgroundFetchQueue>();
+        services.AddHostedService<BackgroundFetchWorker>();
 
         return services;
     }
