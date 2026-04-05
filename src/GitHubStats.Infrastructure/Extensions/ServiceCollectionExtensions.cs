@@ -58,12 +58,13 @@ public static class ServiceCollectionExtensions
         // Caching
         var cacheOptions = configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>() ?? new CacheOptions();
 
-        if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+        var redisConnString = cacheOptions.GetStackExchangeConnectionString();
+        if (!string.IsNullOrEmpty(redisConnString))
         {
             // Use Redis for distributed caching (high scalability)
             services.AddStackExchangeRedisCache(options =>
             {
-                options.Configuration = cacheOptions.RedisConnectionString;
+                options.Configuration = redisConnString;
                 options.InstanceName = cacheOptions.InstanceName;
             });
         }
