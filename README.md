@@ -38,8 +38,9 @@ Add any of these to your GitHub README:
 ```markdown
 ![GitHub Streak](https://github-readme-stats.tuhidulhossain.com/api/streak?username=YOUR_USERNAME)
 ```
-
-![GitHub Streak](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=tokyonight)
+<div align="center">
+  <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=github_dark_dimmed" alt="GitHub Streak" />
+</div>
 
 ### User Stats
 
@@ -47,15 +48,19 @@ Add any of these to your GitHub README:
 ![GitHub Stats](https://github-readme-stats.tuhidulhossain.com/api/stats?username=YOUR_USERNAME&show_icons=true)
 ```
 
-![GitHub Stats](https://github-readme-stats.tuhidulhossain.com/api/stats?username=encryptedtouhid&show_icons=true&theme=tokyonight)
+<div align="center">
+  <img src="https://github-readme-stats.tuhidulhossain.com/api/stats?username=encryptedtouhid&&theme=github_dark_dimmed" alt="Stats" />
+</div>
+
 
 ### Top Languages
 
 ```markdown
 ![Top Languages](https://github-readme-stats.tuhidulhossain.com/api/top-langs?username=YOUR_USERNAME)
 ```
-
-![Top Languages](https://github-readme-stats.tuhidulhossain.com/api/top-langs?username=encryptedtouhid&theme=tokyonight&layout=compact)
+<div align="center">
+  <img src="https://github-readme-stats.tuhidulhossain.com/api/top-langs?username=encryptedtouhid&&theme=github_dark_dimmed" alt="Stats" />
+</div>
 
 ### Repository Pin
 
