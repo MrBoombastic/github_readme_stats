@@ -34,9 +34,8 @@ jobs:
           server: ${{ vars.FTP_SERVER }}
           username: ${{ vars.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ vars.FTP_PORT }}
+          port: 21
+          protocol: ftps
           local-dir: ./publish/
           server-dir: ${{ vars.FTP_DIRECTORY }}
-          protocol: ftps-legacy
-          timeout: 120000
-          security: loose
+          dangerous-clean-slate: true
