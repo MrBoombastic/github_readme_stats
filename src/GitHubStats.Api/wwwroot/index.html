@@ -300,6 +300,43 @@
             font-variant-numeric: tabular-nums;
         }
 
+        /* ---- Status Bar (quick loads: tab/theme switch) ---- */
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 0;
+            background: var(--color-canvas-subtle);
+            border-top: 1px solid var(--color-border-muted);
+            border-radius: 0 0 12px 12px;
+            z-index: 3;
+            font-size: 13px;
+            color: var(--color-accent);
+            font-weight: 500;
+        }
+
+        .status-bar.show { display: flex; }
+
+        .status-bar .mini-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        /* ---- UI Lock ---- */
+        .ui-locked {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
         /* ---- Copy Section ---- */
         .copy-section {
             display: none;
@@ -457,6 +494,10 @@
                 <div id="progressSteps"></div>
                 <div class="progress-elapsed" id="progressElapsed"></div>
             </div>
+            <div class="status-bar" id="statusBar">
+                <div class="mini-spinner"></div>
+                <span id="statusText">Loading...</span>
+            </div>
             <span class="msg" id="previewMsg">Loading...</span>
         </div>
 
@@ -591,18 +632,43 @@
             return '/api/' + currentTab + '?' + parts.join('&');
         }
 
-        // ---- Progress UI helpers ----
+        // ---- UI Lock: prevent all interaction while loading ----
+        function lockUI() {
+            $('.controls, .tabs').addClass('ui-locked');
+        }
+
+        function unlockUI() {
+            $('.controls, .tabs').removeClass('ui-locked');
+        }
+
+        // ---- Status bar for quick loads (tab/theme switch) ----
+        var tabLabels = { 'stats': 'Stats', 'streak': 'Streak', 'top-langs': 'Top Languages' };
+
+        function showStatusBar(message) {
+            $('#statusText').text(message);
+            $('#statusBar').addClass('show');
+            lockUI();
+        }
+
+        function hideStatusBar() {
+            $('#statusBar').removeClass('show');
+            unlockUI();
+        }
+
+        // ---- Progress UI helpers (first-time SSE fetch) ----
         function showProgress() {
             $('#progressPanel').addClass('show');
             $('#progressSteps').empty();
             $('#progressElapsed').text('');
             $('#previewMsg').hide();
             if (currentImg) $(currentImg).addClass('loading');
+            lockUI();
         }
 
         function hideProgress() {
             $('#progressPanel').removeClass('show');
             clearInterval(elapsedInterval);
+            unlockUI();
         }
 
         function addOrUpdateStep(id, status, message) {
@@ -645,13 +711,22 @@
         }
 
         // ---- Load image from cache (data already fetched) ----
-        function loadImage(fullUrl) {
+        function loadImage(fullUrl, statusMessage) {
             var $preview = $('#preview');
             var $copy = $('#copySection');
+
+            // Show status bar with context message
+            if (statusMessage) {
+                showStatusBar(statusMessage);
+            }
+
+            // Dim existing image
+            if (currentImg) $(currentImg).addClass('loading');
 
             var img = new Image();
             img.onload = function () {
                 hideProgress();
+                hideStatusBar();
                 if (currentImg) $(currentImg).remove();
                 currentImg = img;
                 $preview.append(img);
@@ -660,6 +735,7 @@
             };
             img.onerror = function () {
                 hideProgress();
+                hideStatusBar();
                 if (currentImg) $(currentImg).removeClass('loading');
                 if (!currentImg) {
                     $('#previewMsg').text('Failed to load card').addClass('error').show();
@@ -671,6 +747,9 @@
             img.alt = currentTab + ' card for ' + $.trim($('#username').val());
         }
 
+        // ---- Track last username to detect changes ----
+        var lastUser = '';
+
         // ---- Generate (main entry point) ----
         function generate() {
             var user = $.trim($('#username').val());
@@ -681,12 +760,14 @@
             // Cancel any in-flight SSE
             if (activeSSE) { activeSSE.close(); activeSSE = null; }
             clearInterval(elapsedInterval);
+            hideStatusBar();
 
             if (!user) {
                 hideProgress();
                 if (currentImg) { $(currentImg).remove(); currentImg = null; }
                 $msg.text('Enter a GitHub username').removeClass('error').show();
                 $copy.removeClass('show');
+                lastUser = '';
                 return;
             }
 
@@ -694,11 +775,18 @@
             if (!url) return;
             var fullUrl = BASE + url;
 
-            // If this user's data is already cached, load image directly (instant)
+            // Username changed — remove old card immediately
+            if (user !== lastUser) {
+                if (currentImg) { $(currentImg).remove(); currentImg = null; }
+                $copy.removeClass('show');
+                lastUser = user;
+            }
+
+            // If this user's data is already cached, load image with status bar
             if (fetchedUsers[user]) {
                 $msg.hide();
                 hideProgress();
-                loadImage(fullUrl);
+                loadImage(fullUrl, 'Rendering ' + tabLabels[currentTab] + ' card...');
                 return;
             }
 
