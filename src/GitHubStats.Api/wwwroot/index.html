@@ -219,30 +219,86 @@
 
         .preview .msg.error { color: var(--color-danger); }
 
-        /* Spinner */
-        .spinner-wrap {
-            position: absolute;
-            inset: 0;
+        /* ---- Progress Panel ---- */
+        .progress-panel {
             display: none;
-            align-items: center;
-            justify-content: center;
-            background: var(--color-overlay);
-            border-radius: 12px;
-            z-index: 2;
+            flex-direction: column;
+            gap: 0;
+            width: 100%;
+            max-width: 420px;
         }
 
-        .spinner-wrap.show { display: flex; }
+        .progress-panel.show { display: flex; }
 
-        .spinner {
-            width: 36px;
-            height: 36px;
-            border: 3px solid var(--color-border);
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            font-size: 13px;
+            color: var(--color-fg-muted);
+            border-bottom: 1px solid var(--color-border-muted);
+            opacity: 0;
+            transform: translateY(6px);
+            animation: stepIn 0.25s ease-out forwards;
+        }
+
+        .progress-step:last-child { border-bottom: none; }
+
+        @keyframes stepIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Spinner for active step */
+        .step-icon .mini-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-border);
             border-top-color: var(--color-accent);
             border-radius: 50%;
-            animation: spin 0.7s linear infinite;
+            animation: spin 0.6s linear infinite;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Checkmark for done */
+        .step-icon .check {
+            color: var(--color-success);
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* X for error */
+        .step-icon .fail {
+            color: var(--color-danger);
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .step-label { flex: 1; }
+
+        .step-label.done { color: var(--color-fg); }
+        .step-label.active { color: var(--color-accent); }
+        .step-label.error { color: var(--color-danger); }
+
+        .progress-elapsed {
+            text-align: center;
+            font-size: 11px;
+            color: var(--color-fg-subtle);
+            margin-top: 8px;
+            font-variant-numeric: tabular-nums;
+        }
 
         /* ---- Copy Section ---- */
         .copy-section {
@@ -397,7 +453,10 @@
 
         <!-- Preview -->
         <div class="panel preview" id="preview">
-            <div class="spinner-wrap" id="spinner"><div class="spinner"></div></div>
+            <div class="progress-panel" id="progressPanel">
+                <div id="progressSteps"></div>
+                <div class="progress-elapsed" id="progressElapsed"></div>
+            </div>
             <span class="msg" id="previewMsg">Loading...</span>
         </div>
 
@@ -433,6 +492,10 @@
         var currentTab = 'stats';
         var debounceTimer = null;
         var currentImg = null;
+        var activeSSE = null;
+        var elapsedInterval = null;
+        // Track which user has already been fetched (data cached on server)
+        var fetchedUsers = {};
 
         // ---- Themes ----
         var themes = [
@@ -493,13 +556,12 @@
         $themeSelect.on('change', function () { generate(); });
         $('#layout').on('change', function () { generate(); });
 
-        // Debounce username typing — generate after 600ms pause
+        // Debounce username typing
         $('#username').on('input', function () {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(generate, 600);
         });
 
-        // Also trigger immediately on Enter
         $('#username').on('keydown', function (e) {
             if (e.key === 'Enter') {
                 clearTimeout(debounceTimer);
@@ -529,17 +591,100 @@
             return '/api/' + currentTab + '?' + parts.join('&');
         }
 
-        // ---- Generate ----
+        // ---- Progress UI helpers ----
+        function showProgress() {
+            $('#progressPanel').addClass('show');
+            $('#progressSteps').empty();
+            $('#progressElapsed').text('');
+            $('#previewMsg').hide();
+            if (currentImg) $(currentImg).addClass('loading');
+        }
+
+        function hideProgress() {
+            $('#progressPanel').removeClass('show');
+            clearInterval(elapsedInterval);
+        }
+
+        function addOrUpdateStep(id, status, message) {
+            var $existing = $('#step-' + id);
+            var iconHtml;
+            var labelClass;
+
+            if (status === 'active') {
+                iconHtml = '<div class="mini-spinner"></div>';
+                labelClass = 'active';
+            } else if (status === 'done') {
+                iconHtml = '<span class="check">&#10003;</span>';
+                labelClass = 'done';
+            } else {
+                iconHtml = '<span class="fail">&#10007;</span>';
+                labelClass = 'error';
+            }
+
+            if ($existing.length) {
+                $existing.find('.step-icon').html(iconHtml);
+                $existing.find('.step-label').text(message).attr('class', 'step-label ' + labelClass);
+            } else {
+                var step = $(
+                    '<div class="progress-step" id="step-' + id + '">' +
+                        '<div class="step-icon">' + iconHtml + '</div>' +
+                        '<span class="step-label ' + labelClass + '">' + message + '</span>' +
+                    '</div>'
+                );
+                $('#progressSteps').append(step);
+            }
+        }
+
+        function startElapsedTimer() {
+            var start = Date.now();
+            clearInterval(elapsedInterval);
+            elapsedInterval = setInterval(function () {
+                var sec = ((Date.now() - start) / 1000).toFixed(1);
+                $('#progressElapsed').text(sec + 's elapsed');
+            }, 100);
+        }
+
+        // ---- Load image from cache (data already fetched) ----
+        function loadImage(fullUrl) {
+            var $preview = $('#preview');
+            var $copy = $('#copySection');
+
+            var img = new Image();
+            img.onload = function () {
+                hideProgress();
+                if (currentImg) $(currentImg).remove();
+                currentImg = img;
+                $preview.append(img);
+                updateCopyLinks(fullUrl);
+                $copy.addClass('show');
+            };
+            img.onerror = function () {
+                hideProgress();
+                if (currentImg) $(currentImg).removeClass('loading');
+                if (!currentImg) {
+                    $('#previewMsg').text('Failed to load card').addClass('error').show();
+                }
+                updateCopyLinks(fullUrl);
+                $copy.addClass('show');
+            };
+            img.src = fullUrl;
+            img.alt = currentTab + ' card for ' + $.trim($('#username').val());
+        }
+
+        // ---- Generate (main entry point) ----
         function generate() {
             var user = $.trim($('#username').val());
             var $preview = $('#preview');
-            var $spinner = $('#spinner');
             var $msg = $('#previewMsg');
             var $copy = $('#copySection');
 
+            // Cancel any in-flight SSE
+            if (activeSSE) { activeSSE.close(); activeSSE = null; }
+            clearInterval(elapsedInterval);
+
             if (!user) {
+                hideProgress();
                 if (currentImg) { $(currentImg).remove(); currentImg = null; }
-                $spinner.removeClass('show');
                 $msg.text('Enter a GitHub username').removeClass('error').show();
                 $copy.removeClass('show');
                 return;
@@ -549,36 +694,59 @@
             if (!url) return;
             var fullUrl = BASE + url;
 
-            // Show spinner overlay
-            $spinner.addClass('show');
-            $msg.hide();
+            // If this user's data is already cached, load image directly (instant)
+            if (fetchedUsers[user]) {
+                $msg.hide();
+                hideProgress();
+                loadImage(fullUrl);
+                return;
+            }
 
-            // Dim existing image while loading
-            if (currentImg) $(currentImg).addClass('loading');
+            // First time for this user — show progress via SSE
+            showProgress();
+            startElapsedTimer();
 
-            var img = new Image();
+            var sseUrl = '/api/progress?username=' + encodeURIComponent(user);
+            var es = new EventSource(sseUrl);
+            activeSSE = es;
 
-            img.onload = function () {
-                if (currentImg) $(currentImg).remove();
-                currentImg = img;
-                $preview.append(img);
-                $spinner.removeClass('show');
-                updateCopyLinks(fullUrl);
-                $copy.addClass('show');
+            es.addEventListener('step', function (e) {
+                var d = JSON.parse(e.data);
+                addOrUpdateStep(d.step, d.status, d.message);
+            });
+
+            es.addEventListener('complete', function (e) {
+                es.close();
+                activeSSE = null;
+
+                // Mark user as fetched so subsequent theme/tab switches are instant
+                fetchedUsers[user] = true;
+
+                addOrUpdateStep('render', 'active', 'Rendering card...');
+
+                // Small delay so user sees the final checkmarks before the card appears
+                setTimeout(function () {
+                    addOrUpdateStep('render', 'done', 'Done!');
+                    clearInterval(elapsedInterval);
+
+                    setTimeout(function () {
+                        loadImage(fullUrl);
+                    }, 300);
+                }, 200);
+            });
+
+            es.onerror = function () {
+                es.close();
+                activeSSE = null;
+                clearInterval(elapsedInterval);
+                addOrUpdateStep('error', 'error', 'Connection lost — retrying...');
+
+                // Fallback: try loading the image directly
+                setTimeout(function () {
+                    hideProgress();
+                    loadImage(fullUrl);
+                }, 1000);
             };
-
-            img.onerror = function () {
-                if (currentImg) { $(currentImg).removeClass('loading'); }
-                $spinner.removeClass('show');
-                if (!currentImg) {
-                    $msg.text('Failed to load card — check the username').addClass('error').show();
-                }
-                updateCopyLinks(fullUrl);
-                $copy.addClass('show');
-            };
-
-            img.src = fullUrl;
-            img.alt = currentTab + ' card for ' + user;
         }
 
         // ---- Copy links ----

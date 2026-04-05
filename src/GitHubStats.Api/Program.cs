@@ -179,6 +179,7 @@ app.MapRepoEndpoint();
 app.MapTopLangsEndpoint();
 app.MapGistEndpoint();
 app.MapStreakEndpoint();
+app.MapProgressEndpoint();
 
 // Status endpoints
 // Root is now served by wwwroot/index.html via UseDefaultFiles + UseStaticFiles
