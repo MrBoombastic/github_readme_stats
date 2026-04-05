@@ -163,6 +163,8 @@ app.UseResponseCompression();
 app.UseCors("AllowAll");
 app.UseRateLimiter();
 app.UseOutputCache();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 // Exception handling middleware
 app.UseExceptionHandler();
@@ -179,9 +181,7 @@ app.MapGistEndpoint();
 app.MapStreakEndpoint();
 
 // Status endpoints
-app.MapGet("/", () => Results.Ok(new { status = "ok", service = "GitHub Readme Stats" }))
-   .WithName("Root")
-   .WithTags("Status");
+// Root is now served by wwwroot/index.html via UseDefaultFiles + UseStaticFiles
 
 app.MapGet("/api/status/up", () => Results.Ok(new { status = "up", timestamp = DateTime.UtcNow }))
    .WithName("StatusUp")

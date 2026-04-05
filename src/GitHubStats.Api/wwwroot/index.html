@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Readme Stats</title>
+    <style>
+        :root[data-theme="dark"] {
+            --color-canvas:        #0d1117;
+            --color-canvas-subtle: #161b22;
+            --color-border:        #30363d;
+            --color-border-muted:  #21262d;
+            --color-fg:            #e6edf3;
+            --color-fg-muted:      #8b949e;
+            --color-fg-subtle:     #6e7681;
+            --color-accent:        #58a6ff;
+            --color-accent-muted:  #1f3a5f;
+            --color-success:       #238636;
+            --color-success-hover: #2ea043;
+            --color-danger:        #f85149;
+            --color-btn-bg:        #21262d;
+            --color-btn-border:    #30363d;
+            --color-btn-hover:     #30363d;
+            --color-input-bg:      #0d1117;
+            --color-overlay:       rgba(0,0,0,0.4);
+            --color-code:          #79c0ff;
+            --shadow-card:         0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        :root[data-theme="light"] {
+            --color-canvas:        #ffffff;
+            --color-canvas-subtle: #f6f8fa;
+            --color-border:        #d0d7de;
+            --color-border-muted:  #d8dee4;
+            --color-fg:            #1f2328;
+            --color-fg-muted:      #656d76;
+            --color-fg-subtle:     #6e7781;
+            --color-accent:        #0969da;
+            --color-accent-muted:  #ddf4ff;
+            --color-success:       #1a7f37;
+            --color-success-hover: #218bff;
+            --color-danger:        #cf222e;
+            --color-btn-bg:        #f6f8fa;
+            --color-btn-border:    #d0d7de;
+            --color-btn-hover:     #eaeef2;
+            --color-input-bg:      #ffffff;
+            --color-overlay:       rgba(0,0,0,0.15);
+            --color-code:          #0550ae;
+            --shadow-card:         0 1px 3px rgba(31,35,40,0.08), 0 1px 2px rgba(31,35,40,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--color-canvas);
+            color: var(--color-fg);
+            min-height: 100vh;
+            transition: background 0.25s, color 0.25s;
+            line-height: 1.5;
+        }
+
+        /* ---- Layout ---- */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        /* ---- Header ---- */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 24px;
+        }
+
+        .theme-toggle {
+            background: var(--color-btn-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            color: var(--color-fg-muted);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--color-btn-hover);
+            color: var(--color-fg);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            color: var(--color-fg-muted);
+            font-size: 16px;
+        }
+
+        /* ---- Card (shared panel style) ---- */
+        .panel {
+            background: var(--color-canvas-subtle);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow-card);
+        }
+
+        /* ---- Controls ---- */
+        .controls {
+            margin-bottom: 24px;
+        }
+
+        .controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-fg-muted);
+        }
+
+        .control-group input,
+        .control-group select {
+            background: var(--color-input-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--color-fg);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            width: 100%;
+            height: 36px;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px var(--color-accent-muted);
+        }
+
+        /* ---- Tabs ---- */
+        .tabs {
+            display: inline-flex;
+            gap: 0;
+            margin-bottom: 24px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .tab {
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-fg-muted);
+            transition: all 0.15s;
+            border: none;
+            background: var(--color-canvas-subtle);
+            border-right: 1px solid var(--color-border);
+            white-space: nowrap;
+        }
+
+        .tab:last-child { border-right: none; }
+        .tab:hover { color: var(--color-fg); background: var(--color-btn-hover); }
+
+        .tab.active {
+            background: var(--color-accent);
+            color: #fff;
+        }
+
+        /* ---- Preview ---- */
+        .preview {
+            margin-bottom: 24px;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview img {
+            max-width: 100%;
+            height: auto;
+            transition: opacity 0.3s;
+        }
+
+        .preview img.loading { opacity: 0.35; }
+
+        .preview .msg {
+            color: var(--color-fg-muted);
+            font-size: 14px;
+        }
+
+        .preview .msg.error { color: var(--color-danger); }
+
+        /* Spinner */
+        .spinner-wrap {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-overlay);
+            border-radius: 12px;
+            z-index: 2;
+        }
+
+        .spinner-wrap.show { display: flex; }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---- Copy Section ---- */
+        .copy-section {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .copy-section.show { display: flex; }
+
+        .copy-row {
+            display: grid;
+            grid-template-columns: 80px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            background: var(--color-canvas-subtle);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .copy-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-fg-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-code {
+            background: var(--color-input-bg);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+            font-size: 12px;
+            color: var(--color-code);
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .btn-copy {
+            background: var(--color-btn-bg);
+            border: 1px solid var(--color-btn-border);
+            border-radius: 6px;
+            padding: 5px 14px;
+            color: var(--color-fg);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-copy:hover { background: var(--color-btn-hover); }
+
+        .btn-copy.copied {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: #fff;
+        }
+
+        /* ---- Footer ---- */
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid var(--color-border-muted);
+            color: var(--color-fg-subtle);
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover { text-decoration: underline; }
+
+        /* ---- Scrollbar ---- */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 768px) {
+            .container { padding: 24px 16px; }
+            .header h1 { font-size: 24px; }
+            .controls-row {
+                grid-template-columns: 1fr;
+            }
+            .tabs { width: 100%; display: flex; }
+            .tab { flex: 1; text-align: center; padding: 8px 12px; }
+            .copy-row {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .copy-label { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .header p { font-size: 14px; }
+            .panel { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <button class="theme-toggle" id="themeToggle">
+                    <span id="themeIcon">&#9790;</span>
+                    <span id="themeLabel">Dark</span>
+                </button>
+            </div>
+            <h1>GitHub Readme Stats</h1>
+            <p>Generate beautiful SVG cards for your GitHub README</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel controls">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" value="encryptedtouhid" placeholder="GitHub username" spellcheck="false" />
+                </div>
+                <div class="control-group">
+                    <label for="theme">Theme</label>
+                    <select id="theme"></select>
+                </div>
+                <div class="control-group" id="layoutGroup" style="display:none;">
+                    <label for="layout">Layout</label>
+                    <select id="layout">
+                        <option value="normal">Normal</option>
+                        <option value="compact">Compact</option>
+                        <option value="donut">Donut</option>
+                        <option value="donut-vertical">Donut Vertical</option>
+                        <option value="pie">Pie</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="stats">Stats</button>
+            <button class="tab" data-tab="streak">Streak</button>
+            <button class="tab" data-tab="top-langs">Top Languages</button>
+        </div>
+
+        <!-- Preview -->
+        <div class="panel preview" id="preview">
+            <div class="spinner-wrap" id="spinner"><div class="spinner"></div></div>
+            <span class="msg" id="previewMsg">Loading...</span>
+        </div>
+
+        <!-- Copy Links -->
+        <div class="copy-section" id="copySection">
+            <div class="copy-row">
+                <span class="copy-label">Markdown</span>
+                <code class="copy-code" id="mdCode"></code>
+                <button class="btn-copy" data-target="mdCode">Copy</button>
+            </div>
+            <div class="copy-row">
+                <span class="copy-label">HTML</span>
+                <code class="copy-code" id="htmlCode"></code>
+                <button class="btn-copy" data-target="htmlCode">Copy</button>
+            </div>
+            <div class="copy-row">
+                <span class="copy-label">URL</span>
+                <code class="copy-code" id="urlCode"></code>
+                <button class="btn-copy" data-target="urlCode">Copy</button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Developed by <a href="https://tuhidulhossain.com" target="_blank">Khaled Md Tuhidul Hossain</a> &mdash; Built with .NET 9 &mdash; <a href="https://github.com/encryptedtouhid/github-readme-stats" target="_blank">View on GitHub</a>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+    $(function () {
+        var BASE = window.location.origin;
+        var currentTab = 'stats';
+        var debounceTimer = null;
+        var currentImg = null;
+
+        // ---- Themes ----
+        var themes = [
+            'default','dark','radical','merko','gruvbox','gruvbox_light','tokyonight',
+            'onedark','cobalt','synthwave','highcontrast','dracula','prussian','monokai',
+            'vue','vue-dark','shades-of-purple','nightowl','buefy','blue-green','algolia',
+            'great-gatsby','darcula','bear','solarized-dark','solarized-light',
+            'chartreuse-dark','nord','gotham','material-palenight','graywhite',
+            'vision-friendly-dark','ayu-mirage','midnight-purple','calm','flag-india',
+            'omni','react','jolly','maroongold','yeblu','blueberry','slateorange',
+            'kacho_ga','outrun','ocean_dark','city_lights','github_light',
+            'github_light_default','github_light_high_contrast','github_dark',
+            'github_dark_default','github_dark_high_contrast','github_dark_dimmed',
+            'github_dark_colorblind','github_light_colorblind','github_dark_tritanopia',
+            'github_light_tritanopia','discord_old_blurple','aura_dark','panda',
+            'noctis_minimus','cobalt2','swift','aura','apprentice','moltack',
+            'codeSTACKr','rose_pine','catppuccin_latte','catppuccin_mocha','date_night',
+            'one_dark_pro','rose','holi','neon','blue_navy','calm_pink',
+            'ambient_gradient','sunset','sunset_dark','ocean','ocean_deep','forest',
+            'forest_dark','purple_wave','purple_galaxy','cyber','fire','mint','coral',
+            'aurora','golden','golden_dark','rose_gold','electric','lavender','arctic',
+            'khaled_theme'
+        ];
+
+        var $themeSelect = $('#theme');
+        $.each(themes, function (_, t) {
+            $themeSelect.append('<option value="' + t + '">' + t.replace(/_/g, ' ') + '</option>');
+        });
+        $themeSelect.val('tokyonight');
+
+        // ---- Dark / Light toggle ----
+        function applyTheme(mode) {
+            $('html').attr('data-theme', mode);
+            $('#themeIcon').html(mode === 'dark' ? '&#9790;' : '&#9728;');
+            $('#themeLabel').text(mode === 'dark' ? 'Dark' : 'Light');
+            localStorage.setItem('ui-theme', mode);
+        }
+
+        var savedTheme = localStorage.getItem('ui-theme') || 'dark';
+        applyTheme(savedTheme);
+
+        $('#themeToggle').on('click', function () {
+            var next = $('html').attr('data-theme') === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+        });
+
+        // ---- Tabs ----
+        $('.tab').on('click', function () {
+            if ($(this).hasClass('active')) return;
+            $('.tab').removeClass('active');
+            $(this).addClass('active');
+            currentTab = $(this).data('tab');
+            $('#layoutGroup').toggle(currentTab === 'top-langs');
+            generate();
+        });
+
+        // ---- Instant reactivity ----
+        $themeSelect.on('change', function () { generate(); });
+        $('#layout').on('change', function () { generate(); });
+
+        // Debounce username typing — generate after 600ms pause
+        $('#username').on('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(generate, 600);
+        });
+
+        // Also trigger immediately on Enter
+        $('#username').on('keydown', function (e) {
+            if (e.key === 'Enter') {
+                clearTimeout(debounceTimer);
+                generate();
+            }
+        });
+
+        // ---- Build URL ----
+        function buildUrl() {
+            var user = $.trim($('#username').val());
+            if (!user) return null;
+
+            var parts = ['username=' + encodeURIComponent(user)];
+            var theme = $themeSelect.val();
+
+            if (theme && theme !== 'default') {
+                parts.push('theme=' + encodeURIComponent(theme));
+            }
+            if (currentTab === 'stats') {
+                parts.push('show_icons=true');
+            }
+            if (currentTab === 'top-langs') {
+                var layout = $('#layout').val();
+                if (layout !== 'normal') parts.push('layout=' + encodeURIComponent(layout));
+            }
+
+            return '/api/' + currentTab + '?' + parts.join('&');
+        }
+
+        // ---- Generate ----
+        function generate() {
+            var user = $.trim($('#username').val());
+            var $preview = $('#preview');
+            var $spinner = $('#spinner');
+            var $msg = $('#previewMsg');
+            var $copy = $('#copySection');
+
+            if (!user) {
+                if (currentImg) { $(currentImg).remove(); currentImg = null; }
+                $spinner.removeClass('show');
+                $msg.text('Enter a GitHub username').removeClass('error').show();
+                $copy.removeClass('show');
+                return;
+            }
+
+            var url = buildUrl();
+            if (!url) return;
+            var fullUrl = BASE + url;
+
+            // Show spinner overlay
+            $spinner.addClass('show');
+            $msg.hide();
+
+            // Dim existing image while loading
+            if (currentImg) $(currentImg).addClass('loading');
+
+            var img = new Image();
+
+            img.onload = function () {
+                if (currentImg) $(currentImg).remove();
+                currentImg = img;
+                $preview.append(img);
+                $spinner.removeClass('show');
+                updateCopyLinks(fullUrl);
+                $copy.addClass('show');
+            };
+
+            img.onerror = function () {
+                if (currentImg) { $(currentImg).removeClass('loading'); }
+                $spinner.removeClass('show');
+                if (!currentImg) {
+                    $msg.text('Failed to load card — check the username').addClass('error').show();
+                }
+                updateCopyLinks(fullUrl);
+                $copy.addClass('show');
+            };
+
+            img.src = fullUrl;
+            img.alt = currentTab + ' card for ' + user;
+        }
+
+        // ---- Copy links ----
+        function updateCopyLinks(url) {
+            var label = currentTab === 'top-langs' ? 'Top Languages' :
+                        currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+
+            $('#mdCode').text('![' + label + '](' + url + ')');
+            $('#htmlCode').text('<img src="' + url + '" alt="' + label + '" />');
+            $('#urlCode').text(url);
+        }
+
+        $(document).on('click', '.btn-copy', function () {
+            var $btn = $(this);
+            var text = $('#' + $btn.data('target')).text();
+
+            navigator.clipboard.writeText(text).then(function () {
+                $btn.addClass('copied').text('Copied!');
+                setTimeout(function () { $btn.removeClass('copied').text('Copy'); }, 1500);
+            });
+        });
+
+        // ---- Init ----
+        generate();
+    });
+    </script>
+</body>
+</html>
