@@ -1,5 +1,4 @@
 using GitHubStats.Domain.Interfaces;
-using GitHubStats.Infrastructure.BackgroundFetch;
 using GitHubStats.Infrastructure.Caching;
 using GitHubStats.Infrastructure.Configuration;
 using GitHubStats.Infrastructure.GitHub;
@@ -76,9 +75,11 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 
-        // Background fetch queue and worker for non-blocking first requests
-        services.AddSingleton<BackgroundFetchQueue>();
-        services.AddHostedService<BackgroundFetchWorker>();
+        // User tracker for recording which users have been requested
+        services.AddSingleton<UserTracker>();
+
+        // Background job: refresh cache for all tracked users at 9AM and 9PM SGT
+        services.AddHostedService<CacheRefreshJob>();
 
         return services;
     }

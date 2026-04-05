@@ -89,13 +89,13 @@ public static class StreakEndpoint
                     cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : null,
                     cancellationToken);
 
-                SetCacheHeaders(context, cacheSeconds ?? 1800);
+                CacheHeaders.Set(context, cacheSeconds ?? 1800);
                 context.Response.ContentType = "image/svg+xml";
                 return Results.Content(svg, "image/svg+xml");
             }
             catch (DomainException ex)
             {
-                SetErrorCacheHeaders(context);
+                CacheHeaders.SetError(context);
                 context.Response.ContentType = "image/svg+xml";
                 return Results.Content(
                     renderer.RenderErrorCard(ex.Message),
@@ -105,15 +105,5 @@ public static class StreakEndpoint
         .WithName("GetStreak")
         .WithTags("Streak")
         .RequireRateLimiting("perIp");
-    }
-
-    private static void SetCacheHeaders(HttpContext context, int seconds)
-    {
-        context.Response.Headers.CacheControl = $"max-age={seconds}, s-maxage={seconds}, stale-while-revalidate=86400";
-    }
-
-    private static void SetErrorCacheHeaders(HttpContext context)
-    {
-        context.Response.Headers.CacheControl = "max-age=600, s-maxage=600, stale-while-revalidate=86400";
     }
 }

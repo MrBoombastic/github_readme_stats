@@ -806,21 +806,14 @@
             es.addEventListener('complete', function (e) {
                 es.close();
                 activeSSE = null;
+                clearInterval(elapsedInterval);
 
                 // Mark user as fetched so subsequent theme/tab switches are instant
                 fetchedUsers[user] = true;
 
-                addOrUpdateStep('render', 'active', 'Rendering card...');
-
-                // Small delay so user sees the final checkmarks before the card appears
-                setTimeout(function () {
-                    addOrUpdateStep('render', 'done', 'Done!');
-                    clearInterval(elapsedInterval);
-
-                    setTimeout(function () {
-                        loadImage(fullUrl);
-                    }, 300);
-                }, 200);
+                // Hide progress, show status bar, load image immediately
+                hideProgress();
+                loadImage(fullUrl, 'Rendering ' + tabLabels[currentTab] + ' card...');
             });
 
             es.onerror = function () {

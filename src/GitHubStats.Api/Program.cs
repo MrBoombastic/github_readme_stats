@@ -92,30 +92,15 @@ else
 
 builder.Services.AddOutputCache(options =>
 {
-    // Stats card cache policy
-    options.AddPolicy("StatsCard", policy =>
-        policy.Expire(TimeSpan.FromMinutes(30))
-              .Tag("stats"));
-
-    // Top languages card cache policy
-    options.AddPolicy("TopLangsCard", policy =>
-        policy.Expire(TimeSpan.FromMinutes(30))
-              .Tag("langs"));
-
-    // Repo pin card cache policy
+    // Repo pin card cache policy (used by RepoEndpoint)
     options.AddPolicy("RepoCard", policy =>
         policy.Expire(TimeSpan.FromMinutes(30))
               .Tag("repo"));
 
-    // Gist card cache policy
+    // Gist card cache policy (used by GistEndpoint)
     options.AddPolicy("GistCard", policy =>
         policy.Expire(TimeSpan.FromMinutes(30))
               .Tag("gist"));
-
-    // Streak card cache policy
-    options.AddPolicy("StreakCard", policy =>
-        policy.Expire(TimeSpan.FromMinutes(30))
-              .Tag("streak"));
 });
 
 // Health Checks
