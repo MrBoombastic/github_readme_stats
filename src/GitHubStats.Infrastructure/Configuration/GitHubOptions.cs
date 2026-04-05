@@ -18,12 +18,6 @@ public sealed class GitHubOptions
     public List<string> PersonalAccessTokens { get; set; } = [];
 
     /// <summary>
-    /// Whether to fetch all stars across multiple pages.
-    /// Disabled by default to reduce API calls.
-    /// </summary>
-    public bool FetchMultiPageStars { get; set; } = false;
-
-    /// <summary>
     /// GitHub GraphQL API endpoint.
     /// </summary>
     public string GraphQLEndpoint { get; set; } = "https://api.github.com/graphql";
