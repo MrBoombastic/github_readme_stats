@@ -30,12 +30,6 @@ jobs:
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        env:
-          FTP_SERVER: ${{ vars.FTP_SERVER }}
-          FTP_USERNAME: ${{ vars.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_PORT: ${{ vars.FTP_PORT }}
-          FTP_DIRECTORY: ${{ vars.FTP_DIRECTORY }}
         with:
           server: ${{ vars.FTP_SERVER }}
           username: ${{ vars.FTP_USERNAME }}
@@ -43,5 +37,6 @@ jobs:
           port: ${{ vars.FTP_PORT }}
           local-dir: ./publish/
           server-dir: ${{ vars.FTP_DIRECTORY }}
-          protocol: ftps
-          timeout: 60000
+          protocol: ftps-legacy
+          timeout: 120000
+          security: loose
