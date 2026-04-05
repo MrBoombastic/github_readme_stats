@@ -346,7 +346,7 @@ public sealed class CardRenderer : ICardRenderer
         var dashOffset = circumference * (1 - progress / 100);
 
         var ringColor = colors.RingColor ?? colors.TitleColor;
-        svg.Append($@"<circle cx=""0"" cy=""0"" r=""40"" fill=""none"" stroke=""#{ringColor}"" stroke-width=""5"" stroke-dasharray=""{circumference:F2}"" stroke-dashoffset=""{dashOffset:F2}"" transform=""rotate(-90)"" stroke-linecap=""round""/>");
+        svg.Append(SvgInvariant($@"<circle cx=""0"" cy=""0"" r=""40"" fill=""none"" stroke=""#{ringColor}"" stroke-width=""5"" stroke-dasharray=""{circumference:F2}"" stroke-dashoffset=""{dashOffset:F2}"" transform=""rotate(-90)"" stroke-linecap=""round""/>"));
 
         // Rank text
         svg.Append($@"<text class=""rank-text"" x=""0"" y=""0"" text-anchor=""middle"" dominant-baseline=""central"">{rank.Level}</text>");
@@ -575,7 +575,7 @@ public sealed class CardRenderer : ICardRenderer
 
             if (segmentWidth > 0)
             {
-                body.Append($@"<rect x=""{progressX}"" y=""0"" width=""{segmentWidth}"" height=""8"" fill=""{lang.Color}"" mask=""url(#rect-mask)""/>");
+                body.Append(SvgInvariant($@"<rect x=""{progressX}"" y=""0"" width=""{segmentWidth}"" height=""8"" fill=""{lang.Color}"" mask=""url(#rect-mask)""/>"));
                 progressX += segmentWidth;
             }
         }
@@ -646,7 +646,7 @@ public sealed class CardRenderer : ICardRenderer
                 : $"{percent:F1}%";
 
             body.Circle(legendX, legendY - 4, 5, fill: lang.Color);
-            body.Append($@"<text class=""lang-name"" x=""{legendX + 15}"" y=""{legendY}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>");
+            body.Append(SvgInvariant($@"<text class=""lang-name"" x=""{legendX + 15}"" y=""{legendY}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>"));
             legendY += 25;
         }
 
@@ -675,7 +675,7 @@ public sealed class CardRenderer : ICardRenderer
         }
 
         // Legend below in two columns
-        body.StartGroup(transform: $"translate(25, {cy + radius + 30})");
+        body.StartGroup(transform: SvgInvariant($"translate(25, {cy + radius + 30})"));
         var colWidth = (width - 50) / 2.0;
         for (var i = 0; i < langs.Count; i++)
         {
@@ -690,7 +690,7 @@ public sealed class CardRenderer : ICardRenderer
             var y = (i / 2) * 25;
 
             body.Circle(x + 5, y + 6, 5, fill: lang.Color);
-            body.Append($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>");
+            body.Append(SvgInvariant($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>"));
         }
         body.EndGroup();
 
@@ -703,9 +703,9 @@ public sealed class CardRenderer : ICardRenderer
         if (endAngle - startAngle >= 2 * Math.PI - 0.0001)
         {
             if (innerR > 0)
-                return $@"<path d=""M {cx} {cy - outerR} A {outerR} {outerR} 0 1 1 {cx - 0.01} {cy - outerR} M {cx} {cy - innerR} A {innerR} {innerR} 0 1 0 {cx - 0.01} {cy - innerR} Z"" fill=""{fill}""/>";
+                return SvgInvariant($@"<path d=""M {cx} {cy - outerR} A {outerR} {outerR} 0 1 1 {cx - 0.01} {cy - outerR} M {cx} {cy - innerR} A {innerR} {innerR} 0 1 0 {cx - 0.01} {cy - innerR} Z"" fill=""{fill}""/>");
             else
-                return $@"<circle cx=""{cx}"" cy=""{cy}"" r=""{outerR}"" fill=""{fill}""/>";
+                return SvgInvariant($@"<circle cx=""{cx}"" cy=""{cy}"" r=""{outerR}"" fill=""{fill}""/>");
         }
 
         var x1 = cx + outerR * Math.Cos(startAngle);
@@ -720,7 +720,7 @@ public sealed class CardRenderer : ICardRenderer
 
         var largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
 
-        return $@"<path d=""M {x1} {y1} A {outerR} {outerR} 0 {largeArc} 1 {x2} {y2} L {x3} {y3} A {innerR} {innerR} 0 {largeArc} 0 {x4} {y4} Z"" fill=""{fill}""/>";
+        return SvgInvariant($@"<path d=""M {x1} {y1} A {outerR} {outerR} 0 {largeArc} 1 {x2} {y2} L {x3} {y3} A {innerR} {innerR} 0 {largeArc} 0 {x4} {y4} Z"" fill=""{fill}""/>");
     }
 
     #endregion
@@ -989,12 +989,12 @@ public sealed class CardRenderer : ICardRenderer
 
     private static string RenderModernSection(int x, double numberY, double labelY, double dateY, string value, string label, string dateRange, string cssClass, int animationDelay)
     {
-        return $@"
+        return SvgInvariant($@"
 <g class=""streak-section"" style=""animation-delay: {animationDelay}ms"">
     <text class=""stat-value number-pop {cssClass}"" x=""{x}"" y=""{numberY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 50}ms"">{HttpUtility.HtmlEncode(value)}</text>
     <text class=""stat-label fade-in {cssClass}"" x=""{x}"" y=""{labelY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 100}ms"">{HttpUtility.HtmlEncode(label)}</text>
     <text class=""stat-date fade-in"" x=""{x}"" y=""{dateY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 150}ms"">{HttpUtility.HtmlEncode(dateRange)}</text>
-</g>";
+</g>");
     }
 
     private static string RenderModernCurrentStreak(int x, double ringY, double numberY, double labelY, double dateY, string value, string label, string dateRange, int ringRadius, int animationDelay, CardColors colors)
@@ -1003,20 +1003,23 @@ public sealed class CardRenderer : ICardRenderer
         var circumference = 2 * Math.PI * ringRadius;
 
         // Background ring (subtle)
-        var ringBg = $@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" stroke=""#{colors.TextColor}"" stroke-width=""3"" stroke-opacity=""0.08""/>";
+        var ringBg = SvgInvariant($@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" stroke=""#{colors.TextColor}"" stroke-width=""3"" stroke-opacity=""0.08""/>");
 
         // Animated gradient ring
-        var ring = $@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" class=""ring ring-anim glow"" stroke-width=""3"" stroke-linecap=""round"" transform=""rotate(-90 {x} {ringY:F1})"" style=""animation-delay: {animationDelay + 100}ms""/>";
+        var ring = SvgInvariant($@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" class=""ring ring-anim glow"" stroke-width=""3"" stroke-linecap=""round"" transform=""rotate(-90 {x} {ringY:F1})"" style=""animation-delay: {animationDelay + 100}ms""/>");
 
-        return $@"
+        return SvgInvariant($@"
 <g class=""streak-section"" style=""animation-delay: {animationDelay}ms"">
     {ringBg}
     {ring}
     <text class=""stat-value number-pop current"" x=""{x}"" y=""{numberY:F1}"" text-anchor=""middle"" dominant-baseline=""middle"" style=""animation-delay: {animationDelay + 200}ms"">{HttpUtility.HtmlEncode(value)}</text>
     <text class=""stat-label fade-in current"" x=""{x}"" y=""{labelY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 300}ms"">{HttpUtility.HtmlEncode(label)}</text>
     <text class=""stat-date fade-in"" x=""{x}"" y=""{dateY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 350}ms"">{HttpUtility.HtmlEncode(dateRange)}</text>
-</g>";
+</g>");
     }
+
+    // Keep . as a decimal separator in SVGs
+    private static string SvgInvariant(FormattableString svg) => FormattableString.Invariant(svg);
 
     private static string FormatDateRange(DateOnly? start, DateOnly? end)
     {

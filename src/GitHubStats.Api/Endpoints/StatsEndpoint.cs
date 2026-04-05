@@ -31,7 +31,6 @@ public static class StatsEndpoint
             [FromQuery(Name = "cache_seconds")] int? cacheSeconds,
             [FromQuery] string? locale,
             [FromQuery(Name = "disable_animations")] bool? disableAnimations,
-            [FromQuery(Name = "rank_icon")] string? rankIcon,
             [FromQuery(Name = "number_format")] string? numberFormat,
             [FromQuery(Name = "text_bold")] bool? textBold,
             [FromQuery(Name = "exclude_repo")] string? excludeRepo,
@@ -75,8 +74,7 @@ public static class StatsEndpoint
                     CardWidth = cardWidth,
                     RingColor = ringColor,
                     TextBold = textBold ?? true,
-                    NumberFormat = numberFormat ?? "short",
-                    RankIcon = rankIcon ?? "default"
+                    NumberFormat = numberFormat ?? "short"
                 };
 
                 var excludeRepos = excludeRepo?.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
