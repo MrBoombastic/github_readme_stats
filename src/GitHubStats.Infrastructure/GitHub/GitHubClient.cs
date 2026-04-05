@@ -207,9 +207,13 @@ public sealed class GitHubClient : IGitHubClient
         var variables = new Dictionary<string, object?>
         {
             ["login"] = username,
-            ["after"] = null,
-            ["isFork"] = includeForks ? (bool?)null : false
+            ["after"] = null
         };
+
+        if (!includeForks)
+        {
+            variables["isFork"] = false;
+        }
 
         var response = await ExecuteGraphQLAsync<TopLanguagesResponse>(
             GraphQLQueries.TopLanguagesQuery,
