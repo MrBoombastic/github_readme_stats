@@ -67,12 +67,19 @@ Add any of these to your GitHub README:
 ```markdown
 ![Repo Card](https://github-readme-stats.tuhidulhossain.com/api/pin?username=YOUR_USERNAME&repo=REPO_NAME)
 ```
+<div align="center">
+  <img src="https://github-readme-stats.tuhidulhossain.com/api/pin?username=encryptedtouhid&repo=github_readme_stats&theme=github_dark_dimmed" alt="Stats" />
+</div>
 
 ### Gist Card
 
 ```markdown
 ![Gist Card](https://github-readme-stats.tuhidulhossain.com/api/gist?id=GIST_ID)
 ```
+
+<div align="center">
+  <img src="https://github-readme-stats.tuhidulhossain.com/api/gist?id=914a6557554c0ef83e3b288063ab1b23&theme=github_dark_dimmed" alt="Gist" />
+</div>
 
 ---
 
