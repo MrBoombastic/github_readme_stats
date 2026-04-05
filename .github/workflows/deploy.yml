@@ -51,9 +51,9 @@ jobs:
           FTP_HOST: ${{ vars.FTP_SERVER }}
           FTP_DIR: ${{ vars.FTP_DIRECTORY }}
         run: |
-          curl --ftp-ssl --insecure --ftp-create-dirs \
+          curl --ssl-reqd -k --ftp-create-dirs \
             -u "${FTP_USER}:${FTP_PASS}" \
-            -T - "ftps://${FTP_HOST}:21${FTP_DIR}app_offline.htm" \
+            -T - "ftp://${FTP_HOST}:21${FTP_DIR}app_offline.htm" \
             <<< '<html><body>Deploying... please wait.</body></html>'
           echo "Waiting for IIS to release file locks..."
           sleep 5
@@ -78,7 +78,7 @@ jobs:
           FTP_HOST: ${{ vars.FTP_SERVER }}
           FTP_DIR: ${{ vars.FTP_DIRECTORY }}
         run: |
-          curl --ftp-ssl --insecure \
+          curl --ssl-reqd -k \
             -u "${FTP_USER}:${FTP_PASS}" \
             -Q "DELE ${FTP_DIR}app_offline.htm" \
-            "ftps://${FTP_HOST}:21/" || true
+            "ftp://${FTP_HOST}:21/" || true
