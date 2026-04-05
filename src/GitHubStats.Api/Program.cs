@@ -76,12 +76,13 @@ builder.Services.AddRateLimiter(options =>
 
 // Output Caching with Redis for distributed caching
 var cacheOptions = builder.Configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>() ?? new CacheOptions();
+var redisConnString = cacheOptions.GetStackExchangeConnectionString();
 
-if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+if (!string.IsNullOrEmpty(redisConnString))
 {
     builder.Services.AddStackExchangeRedisOutputCache(options =>
     {
-        options.Configuration = cacheOptions.RedisConnectionString;
+        options.Configuration = redisConnString;
         options.InstanceName = cacheOptions.InstanceName;
     });
 }
@@ -124,10 +125,10 @@ builder.Services.AddOutputCache(options =>
 // Health Checks
 builder.Services.AddHealthChecks();
 
-if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+if (!string.IsNullOrEmpty(redisConnString))
 {
     builder.Services.AddHealthChecks()
-        .AddRedis(cacheOptions.RedisConnectionString, name: "redis");
+        .AddRedis(redisConnString, name: "redis");
 }
 
 // Response Compression
@@ -192,3 +193,6 @@ app.MapGet("/api/status/up", () => Results.Ok(new { status = "up", timestamp = D
    .WithTags("Status");
 
 app.Run();
+
+// Make Program accessible for integration tests
+public partial class Program { }
