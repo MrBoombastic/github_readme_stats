@@ -1,4 +1,4 @@
-name: Deploy via Web Deploy
+name: Deploy to FTP
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     name: Build & Deploy
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -32,29 +32,53 @@ jobs:
         env:
           GH_STATS_TOKEN: ${{ secrets.GH_STATS_TOKEN }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
-        shell: python
         run: |
-          import json, os
-          with open('publish/appsettings.json', 'r') as f:
-              cfg = json.load(f)
+          cd publish
+          cat appsettings.json | python3 -c "
+          import sys, json
+          cfg = json.load(sys.stdin)
+          import os
           cfg['GitHub']['PersonalAccessTokens'] = [os.environ['GH_STATS_TOKEN']]
           cfg['Cache']['RedisConnectionString'] = os.environ['REDIS_URL']
-          with open('publish/appsettings.json', 'w') as f:
-              json.dump(cfg, f, indent=2)
+          json.dump(cfg, sys.stdout, indent=2)
+          " > appsettings.tmp.json
+          mv appsettings.tmp.json appsettings.json
 
-      - name: Deploy via Web Deploy
+      - name: Stop app (upload app_offline.htm to release file locks)
         env:
-          DEPLOY_USER: ${{ vars.FTP_USERNAME }}
-          DEPLOY_PASS: ${{ secrets.FTP_PASSWORD }}
-          DEPLOY_URL: ${{ secrets.WEBDEPLOY_SERVER_URL }}
-          DEPLOY_SITE: ${{ secrets.WEBDEPLOY_SITE_NAME }}
-        shell: cmd
+          FTP_USER: ${{ vars.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          FTP_HOST: ${{ vars.FTP_SERVER }}
+          FTP_DIR: ${{ vars.FTP_DIRECTORY }}
         run: |
-          "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" ^
-            -verb:sync ^
-            -source:contentPath="%GITHUB_WORKSPACE%\publish" ^
-            -dest:contentPath="%DEPLOY_SITE%",computerName="%DEPLOY_URL%",userName="%DEPLOY_USER%",password="%DEPLOY_PASS%",authType="basic" ^
-            -enableRule:AppOffline ^
-            -allowUntrusted ^
-            -retryAttempts:3 ^
-            -retryInterval:2000
+          curl --ssl-reqd -k --ftp-create-dirs \
+            -u "${FTP_USER}:${FTP_PASS}" \
+            -T - "ftp://${FTP_HOST}:21${FTP_DIR}app_offline.htm" \
+            <<< '<html><body>Deploying... please wait.</body></html>'
+          echo "Waiting for IIS to release file locks..."
+          sleep 5
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ vars.FTP_SERVER }}
+          username: ${{ vars.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          security: loose
+          local-dir: ./publish/
+          server-dir: ${{ vars.FTP_DIRECTORY }}
+          dangerous-clean-slate: true
+
+      - name: Restart app (remove app_offline.htm)
+        env:
+          FTP_USER: ${{ vars.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          FTP_HOST: ${{ vars.FTP_SERVER }}
+          FTP_DIR: ${{ vars.FTP_DIRECTORY }}
+        run: |
+          curl --ssl-reqd -k \
+            -u "${FTP_USER}:${FTP_PASS}" \
+            -Q "DELE ${FTP_DIR}app_offline.htm" \
+            "ftp://${FTP_HOST}:21/" || true
