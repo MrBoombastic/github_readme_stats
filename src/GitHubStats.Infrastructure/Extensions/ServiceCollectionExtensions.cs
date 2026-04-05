@@ -33,23 +33,26 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IGitHubClient, GitHubClient>("GitHub", client =>
         {
             client.DefaultRequestHeaders.Add("User-Agent", "GitHubStats");
-            client.Timeout = TimeSpan.FromSeconds(30);
+            client.Timeout = TimeSpan.FromSeconds(10);
         })
         .AddStandardResilienceHandler(options =>
         {
-            // Retry policy with exponential backoff
-            options.Retry.MaxRetryAttempts = 3;
-            options.Retry.Delay = TimeSpan.FromMilliseconds(500);
+            // Retry policy with fast exponential backoff
+            options.Retry.MaxRetryAttempts = 2;
+            options.Retry.Delay = TimeSpan.FromMilliseconds(200);
             options.Retry.BackoffType = DelayBackoffType.Exponential;
 
             // Circuit breaker
             options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
             options.CircuitBreaker.FailureRatio = 0.5;
             options.CircuitBreaker.MinimumThroughput = 10;
-            options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(30);
+            options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
 
             // Total request timeout
-            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(60);
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(15);
+
+            // Per-attempt timeout
+            options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(8);
         });
 
         // Caching

@@ -66,11 +66,20 @@ public sealed class GitHubClient : IGitHubClient
             ["startTime"] = commitsYear.HasValue ? $"{commitsYear}-01-01T00:00:00Z" : null
         };
 
-        var response = await ExecuteGraphQLAsync<UserStatsResponse>(
+        // Launch GraphQL and REST commit fetch in parallel when includeAllCommits is true
+        var graphQLTask = ExecuteGraphQLAsync<UserStatsResponse>(
             GraphQLQueries.UserStatsQuery,
             variables,
             cancellationToken);
 
+        var commitsTask = includeAllCommits
+            ? FetchTotalCommitsAsync(username, cancellationToken)
+            : Task.FromResult(0);
+
+        // Await both in parallel
+        await Task.WhenAll(graphQLTask, commitsTask);
+
+        var response = graphQLTask.Result;
         if (response.Data?.User == null)
         {
             throw new UserNotFoundException(username);
@@ -86,16 +95,10 @@ public sealed class GitHubClient : IGitHubClient
             .Where(r => !allExcludedRepos.Contains(r.Name))
             .Sum(r => r.Stargazers.TotalCount);
 
-        // Fetch all commits if requested
-        int totalCommits;
-        if (includeAllCommits)
-        {
-            totalCommits = await FetchTotalCommitsAsync(username, cancellationToken);
-        }
-        else
-        {
-            totalCommits = user.Commits.TotalCommitContributions;
-        }
+        // Use parallel-fetched commit count or GraphQL result
+        int totalCommits = includeAllCommits
+            ? commitsTask.Result
+            : user.Commits.TotalCommitContributions;
 
         var totalIssues = user.OpenIssues.TotalCount + user.ClosedIssues.TotalCount;
         var totalPRsMerged = includeMergedPRs ? user.MergedPullRequests?.TotalCount ?? 0 : 0;
@@ -348,13 +351,35 @@ public sealed class GitHubClient : IGitHubClient
         }
 
         var currentYear = DateTime.UtcNow.Year;
-        var minYear = startingYear ?? 2005; // Git was created in 2005
 
-        // Build initial years to fetch - we'll include createdAt in first batch to optimize
+        // Fetch user creation date first (lightweight query) to avoid querying unnecessary years
+        int minYear;
+        if (startingYear.HasValue)
+        {
+            minYear = startingYear.Value;
+        }
+        else
+        {
+            var createdAtResponse = await ExecuteGraphQLAsync<UserCreatedAtResponse>(
+                GraphQLQueries.UserCreatedAtQuery,
+                new Dictionary<string, object?> { ["login"] = username },
+                cancellationToken);
+
+            if (createdAtResponse.Data?.User == null)
+            {
+                throw new UserNotFoundException(username);
+            }
+
+            minYear = DateTime.TryParse(createdAtResponse.Data.User.CreatedAt, out var createdDate)
+                ? createdDate.Year
+                : 2005;
+        }
+
+        // Build years to fetch based on actual user creation year
         var yearsToFetch = Enumerable.Range(minYear, currentYear - minYear + 1).ToList();
 
-        // Use batched GraphQL queries - fetch up to 10 years per request in parallel
-        const int batchSize = 10;
+        // Use batched GraphQL queries - fetch up to 15 years per request in parallel
+        const int batchSize = 15;
         var batches = yearsToFetch
             .Select((year, index) => new { year, index })
             .GroupBy(x => x.index / batchSize)
