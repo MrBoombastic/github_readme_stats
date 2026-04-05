@@ -44,6 +44,20 @@ jobs:
           " > appsettings.tmp.json
           mv appsettings.tmp.json appsettings.json
 
+      - name: Stop app (upload app_offline.htm to release file locks)
+        env:
+          FTP_USER: ${{ vars.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          FTP_HOST: ${{ vars.FTP_SERVER }}
+          FTP_DIR: ${{ vars.FTP_DIRECTORY }}
+        run: |
+          curl --ftp-ssl --insecure --ftp-create-dirs \
+            -u "${FTP_USER}:${FTP_PASS}" \
+            -T - "ftps://${FTP_HOST}:21${FTP_DIR}app_offline.htm" \
+            <<< '<html><body>Deploying... please wait.</body></html>'
+          echo "Waiting for IIS to release file locks..."
+          sleep 5
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -56,3 +70,15 @@ jobs:
           local-dir: ./publish/
           server-dir: ${{ vars.FTP_DIRECTORY }}
           dangerous-clean-slate: true
+
+      - name: Restart app (remove app_offline.htm)
+        env:
+          FTP_USER: ${{ vars.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          FTP_HOST: ${{ vars.FTP_SERVER }}
+          FTP_DIR: ${{ vars.FTP_DIRECTORY }}
+        run: |
+          curl --ftp-ssl --insecure \
+            -u "${FTP_USER}:${FTP_PASS}" \
+            -Q "DELE ${FTP_DIR}app_offline.htm" \
+            "ftps://${FTP_HOST}:21/" || true
