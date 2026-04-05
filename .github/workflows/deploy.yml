@@ -45,13 +45,14 @@ jobs:
           mv appsettings.tmp.json appsettings.json
 
       - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ vars.FTP_SERVER }}
           username: ${{ vars.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
           protocol: ftps
+          security: loose
           local-dir: ./publish/
           server-dir: ${{ vars.FTP_DIRECTORY }}
           dangerous-clean-slate: true
