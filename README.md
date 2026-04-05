@@ -192,16 +192,16 @@ Use the `theme` parameter to customize your card appearance:
 
 | Theme | Preview |
 |-------|---------|
-| `github_light` | ![github_light](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=github_light) |
-| `github_dark` | ![github_dark](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=github_dark) |
-| `tokyonight` | ![tokyonight](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=tokyonight) |
-| `dracula` | ![dracula](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=dracula) |
-| `nord` | ![nord](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=nord) |
-| `radical` | ![radical](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=radical) |
-| `sunset_dark` | ![sunset_dark](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=sunset_dark) |
-| `ocean_deep` | ![ocean_deep](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=ocean_deep) |
-| `cyber` | ![cyber](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=cyber) |
-| `aurora` | ![aurora](https://github-readme-stats.tuhidulhossain.com/api/streak?username=encryptedtouhid&theme=aurora) |
+| `github_light` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=github_light" alt="github_light" /> |
+| `github_dark` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=github_dark" alt="github_dark" /> |
+| `tokyonight` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=tokyonight" alt="tokyonight" /> |
+| `dracula` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=dracula" alt="dracula" /> |
+| `nord` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=nord" alt="nord" /> |
+| `radical` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=radical" alt="radical" /> |
+| `sunset_dark` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=sunset_dark" alt="sunset_dark" /> |
+| `ocean_deep` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=ocean_deep" alt="ocean_deep" /> |
+| `cyber` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=cyber" alt="cyber" /> |
+| `aurora` | <img src="https://github-readme-stats.tuhidulhossain.com/api/streak?username=Encryptedtouhid&&theme=aurora" alt="aurora" /> |
 
 ### All Available Themes
 
