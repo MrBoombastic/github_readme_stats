@@ -108,6 +108,7 @@ public static class StatsEndpoint
         })
         .WithName("GetStats")
         .WithTags("Stats")
-        .RequireRateLimiting("stats");
+        .RequireRateLimiting("stats")
+        .CacheOutput("StatsCard");
     }
 }

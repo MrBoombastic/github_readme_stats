@@ -92,6 +92,24 @@ else
 
 builder.Services.AddOutputCache(options =>
 {
+    // Stats card cache policy
+    options.AddPolicy("StatsCard", policy =>
+        policy.Expire(TimeSpan.FromMinutes(30))
+              .SetVaryByQuery("username", "theme", "show_icons", "hide_title", "hide_border", "hide_rank", "hide", "show", "include_all_commits", "commits_year", "title_color", "text_color", "icon_color", "bg_color", "border_color", "border_radius", "ring_color", "cache_seconds", "locale", "disable_animations", "rank_icon", "number_format", "text_bold", "exclude_repo", "line_height", "card_width")
+              .Tag("stats"));
+
+    // Streak card cache policy
+    options.AddPolicy("StreakCard", policy =>
+        policy.Expire(TimeSpan.FromMinutes(30))
+              .SetVaryByQuery("username", "theme", "hide_border", "border_radius", "title_color", "text_color", "icon_color", "bg_color", "border_color", "ring_color", "fire_color", "stroke_color", "curr_streak_num_color", "side_nums_color", "curr_streak_label_color", "side_labels_color", "dates_color", "date_format", "card_width", "card_height", "hide_total_contributions", "hide_current_streak", "hide_longest_streak", "starting_year", "cache_seconds", "locale", "disable_animations")
+              .Tag("streak"));
+
+    // Top languages card cache policy
+    options.AddPolicy("TopLangsCard", policy =>
+        policy.Expire(TimeSpan.FromMinutes(30))
+              .SetVaryByQuery("username", "theme", "hide", "layout", "langs_count", "exclude_repo", "size_weight", "count_weight", "hide_progress", "hide_title", "hide_border", "card_width", "title_color", "text_color", "bg_color", "border_color", "border_radius", "cache_seconds", "locale", "disable_animations", "custom_title", "stats_format")
+              .Tag("top-langs"));
+
     // Repo pin card cache policy (used by RepoEndpoint)
     options.AddPolicy("RepoCard", policy =>
         policy.Expire(TimeSpan.FromMinutes(30))

@@ -115,6 +115,7 @@ public static class TopLangsEndpoint
         })
         .WithName("GetTopLangs")
         .WithTags("Languages")
-        .RequireRateLimiting("perIp");
+        .RequireRateLimiting("perIp")
+        .CacheOutput("TopLangsCard");
     }
 }
