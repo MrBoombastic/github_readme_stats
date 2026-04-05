@@ -207,7 +207,8 @@ public sealed class GitHubClient : IGitHubClient
         var variables = new Dictionary<string, object?>
         {
             ["login"] = username,
-            ["after"] = null
+            ["after"] = null,
+            ["isFork"] = includeForks ? (bool?)null : false
         };
 
         if (!includeForks)
