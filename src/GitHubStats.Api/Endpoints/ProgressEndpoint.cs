@@ -1,5 +1,6 @@
 using System.Text.Json;
 using GitHubStats.Application.Services;
+using GitHubStats.Infrastructure.Caching;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -14,6 +15,7 @@ public static class ProgressEndpoint
             StatsCardService statsService,
             StreakCardService streakService,
             TopLanguagesCardService langsService,
+            UserTracker userTracker,
             HttpContext context,
             CancellationToken cancellationToken) =>
         {
@@ -34,6 +36,9 @@ public static class ProgressEndpoint
                 await context.Response.WriteAsync($"event: {eventType}\ndata: {data}\n\n", cancellationToken);
                 await context.Response.Body.FlushAsync(cancellationToken);
             }
+
+            // Track this user so the background refresh job keeps their cache warm
+            _ = userTracker.TrackAsync(username, cancellationToken);
 
             await SendEvent("step", "init", "active", "Connecting to GitHub API...");
 

@@ -75,6 +75,12 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 
+        // User tracker for recording which users have been requested
+        services.AddSingleton<UserTracker>();
+
+        // Background job: refresh cache for all tracked users at 9AM and 9PM SGT
+        services.AddHostedService<CacheRefreshJob>();
+
         return services;
     }
 }
