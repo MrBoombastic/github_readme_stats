@@ -453,7 +453,9 @@ public sealed class CardRenderer : ICardRenderer
     {
         var langCount = langs.Count;
         var longestName = langs.Any() ? langs.Max(l => l.Name.Length) : 0;
-        
+        var totalSize = langs.Sum(l => l.Size);
+        var maxLegendTextWidth = EstimateMaxLegendTextWidth(langs, totalSize, options);
+
         // Dynamic width estimation
         int estimatedNameWidth = (int)(longestName * 8.5); 
         int width = options.CardWidth ?? 300;
@@ -469,14 +471,15 @@ public sealed class CardRenderer : ICardRenderer
                 contentHeight = 35 + (int)Math.Ceiling(langCount / 2.0) * 25; // Bar(10) + Space(25) + Labels
                 break;
             case "donut":
-                int minDonutWidth = 240 + estimatedNameWidth + 60;
-                width = options.CardWidth ?? Math.Max(350, minDonutWidth);
+                // Keep auto-width bounded so very long legends do not create excessively wide cards.
+                int minDonutWidth = 240 + (int)Math.Ceiling(maxLegendTextWidth) + 20;
+                width = options.CardWidth ?? Math.Min(700, Math.Max(350, minDonutWidth));
                 contentHeight = Math.Max(210, langCount * 25 + 20); // Center chart at 105
                 break;
             case "donut-vertical":
             case "pie":
-                int minVerticalWidth = (estimatedNameWidth + 90) * 2;
-                width = options.CardWidth ?? Math.Max(300, minVerticalWidth);
+                int minVerticalWidth = 50 + ((int)Math.Ceiling(maxLegendTextWidth) + 20) * 2;
+                width = options.CardWidth ?? Math.Min(700, Math.Max(300, minVerticalWidth));
                 contentHeight = 220 + (int)Math.Ceiling(langCount / 2.0) * 25;
                 break;
             default: // normal
@@ -491,6 +494,70 @@ public sealed class CardRenderer : ICardRenderer
         height = options.HideTitle ? contentHeight + 25 + 30 : contentHeight + 55;
 
         return (width, options.CardHeight ?? height);
+    }
+
+    private static double EstimateMaxLegendTextWidth(List<LanguageStats> langs, long totalSize, TopLanguagesCardOptions options)
+    {
+        var maxWidth = 0d;
+
+        foreach (var lang in langs)
+        {
+            var percent = totalSize > 0 ? (double)lang.Size / totalSize * 100 : 0;
+            var displayValue = options.StatsFormat == "bytes"
+                ? FormatBytes(lang.Size)
+                : $"{percent:F1}%";
+            var label = $"{lang.Name} ({displayValue})";
+            maxWidth = Math.Max(maxWidth, EstimateSvgTextWidth(label));
+        }
+
+        return maxWidth;
+    }
+
+    private static double EstimateSvgTextWidth(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 0;
+
+        // Fast width heuristic for 11px legend labels: good enough for layout sizing without font measurement APIs.
+        const double averageGlyphWidth = 6.4; // 11px UI font heuristic + padding
+        var width = text.Length * averageGlyphWidth;
+
+        foreach (var c in text)
+        {
+            if ("ilI.,:;|'` ".Contains(c))
+                width -= 2.6;
+            else if ("MW@#%QG".Contains(c))
+                width += 1.8;
+        }
+
+        return Math.Max(0, width + 8);
+    }
+
+    private static string TruncateToEstimatedWidth(string text, double maxWidth)
+    {
+        const string suffix = "...";
+
+        if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+            return string.Empty;
+
+        if (EstimateSvgTextWidth(text) <= maxWidth)
+            return text;
+
+        if (EstimateSvgTextWidth(suffix) >= maxWidth)
+            return suffix;
+
+        // Trim until the estimated width fits, while always preserving an ellipsis marker.
+        var trimLength = text.Length;
+        while (trimLength > 0)
+        {
+            var candidate = text[..trimLength] + suffix;
+            if (EstimateSvgTextWidth(candidate) <= maxWidth)
+                return candidate;
+
+            trimLength--;
+        }
+
+        return suffix;
     }
 
     private static string RenderTopLangsBody(List<LanguageStats> langs, TopLanguagesCardOptions options, int width)
@@ -638,15 +705,19 @@ public sealed class CardRenderer : ICardRenderer
         // Legends
         var legendX = cx + radius + 40;
         var legendY = 25; // Adjusted legend start position
+        var legendTextX = legendX + 15;
+        // Reserve right-side padding so labels never render flush against the card edge.
+        var maxLegendTextWidth = Math.Max(40, width - legendTextX - 15);
         foreach (var lang in langs)
         {
             var percent = totalSize > 0 ? (double)lang.Size / totalSize * 100 : 0;
             var displayValue = options.StatsFormat == "bytes"
                 ? FormatBytes(lang.Size)
                 : $"{percent:F1}%";
+            var legendLabel = TruncateToEstimatedWidth($"{lang.Name} ({displayValue})", maxLegendTextWidth);
 
             body.Circle(legendX, legendY - 4, 5, fill: lang.Color);
-            body.Append(SvgInvariant($@"<text class=""lang-name"" x=""{legendX + 15}"" y=""{legendY}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>"));
+            body.Append(SvgInvariant($@"<text class=""lang-name"" x=""{legendTextX}"" y=""{legendY}"">{HttpUtility.HtmlEncode(legendLabel)}</text>"));
             legendY += 25;
         }
 
@@ -677,6 +748,7 @@ public sealed class CardRenderer : ICardRenderer
         // Legend below in two columns
         body.StartGroup(transform: SvgInvariant($"translate(25, {cy + radius + 30})"));
         var colWidth = (width - 50) / 2.0;
+        var maxLegendTextWidth = Math.Max(30, colWidth - 20);
         for (var i = 0; i < langs.Count; i++)
         {
             var lang = langs[i];
@@ -684,13 +756,14 @@ public sealed class CardRenderer : ICardRenderer
             var displayValue = options.StatsFormat == "bytes"
                 ? FormatBytes(lang.Size)
                 : $"{percent:F1}%";
+            var legendLabel = TruncateToEstimatedWidth($"{lang.Name} ({displayValue})", maxLegendTextWidth);
 
             var isLeft = i % 2 == 0;
             var x = isLeft ? 0 : colWidth;
             var y = (i / 2) * 25;
 
             body.Circle(x + 5, y + 6, 5, fill: lang.Color);
-            body.Append(SvgInvariant($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>"));
+            body.Append(SvgInvariant($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(legendLabel)}</text>"));
         }
         body.EndGroup();
 
@@ -1018,7 +1091,7 @@ public sealed class CardRenderer : ICardRenderer
 </g>");
     }
 
-    // Keep . as a decimal separator in SVGs
+    // Force invariant formatting so SVG numeric attributes always use '.' regardless of server locale.
     private static string SvgInvariant(FormattableString svg) => FormattableString.Invariant(svg);
 
     private static string FormatDateRange(DateOnly? start, DateOnly? end)
