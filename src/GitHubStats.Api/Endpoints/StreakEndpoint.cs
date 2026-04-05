@@ -104,6 +104,7 @@ public static class StreakEndpoint
         })
         .WithName("GetStreak")
         .WithTags("Streak")
-        .RequireRateLimiting("perIp");
+        .RequireRateLimiting("perIp")
+        .CacheOutput("StreakCard");
     }
 }
