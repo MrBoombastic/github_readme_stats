@@ -11,6 +11,8 @@
 /src/GitHubStats.Infrastructure/bin
 /src/GitHubStats.Domain/bin
 /src/GitHubStats.Domain/obj
+/src/GitHubStats.Tests/bin
+/src/GitHubStats.Tests/obj
 /src/.idea
 /src/.vs
 src/GitHubStats.Api/Properties/PublishProfiles/FolderProfile.pubxml.user
