@@ -83,36 +83,6 @@ Add any of these to your GitHub README:
 
 ---
 
-## Docker Instructions
-
-### 1. Build the Docker Image
-
-Open a terminal in the project root and run:
-
-```powershell
-docker build -t github-readme-stats .
-```
-
-### 2. Run the Container
-
-```powershell
-docker run -v ${PWD}/appsettings.json:/app/appsettings.json -p 8080:8080 github-readme-stats
-```
-
-- Replace `8080` with your desired host port if needed.
-
-### Alternative: Using Docker Compose
-
-If you want to use Docker Compose (recommended for development or multi-service setups):
-
-```powershell
-docker-compose up --build
-```
-
-- This will build and start all services defined in `docker-compose.yml`.
-
---
-
 ## API Reference
 
 ### Endpoints
