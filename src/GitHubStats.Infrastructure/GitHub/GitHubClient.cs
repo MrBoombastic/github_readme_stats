@@ -87,6 +87,17 @@ public sealed class GitHubClient : IGitHubClient
         }
 
         var user = response.Data.User;
+
+        // Validate essential fields were returned by the API
+        if (user.Commits == null || user.Reviews == null || user.PullRequests == null ||
+            user.OpenIssues == null || user.ClosedIssues == null || user.Followers == null ||
+            user.Repositories == null || user.RepositoriesContributedTo == null)
+        {
+            throw new DomainException(
+                $"GitHub API returned incomplete data for '{username}'. Check token scopes.",
+                "INCOMPLETE_DATA");
+        }
+
         var allExcludedRepos = (excludeRepos ?? [])
             .Concat(_accessControlOptions.ExcludeRepositories)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -689,7 +700,7 @@ public sealed class GitHubClient : IGitHubClient
                 new Dictionary<string, object?> { ["login"] = username, ["after"] = cursor },
                 cancellationToken);
 
-            if (response.Data?.User == null) break;
+            if (response.Data?.User?.Repositories == null) break;
 
             var repos = response.Data.User.Repositories;
             totalStars += repos.Nodes
@@ -789,18 +800,18 @@ internal sealed class UserStatsResponse
 internal sealed class UserData
 {
     public string? Name { get; set; }
-    public required string Login { get; set; }
-    public required ContributionsData Commits { get; set; }
-    public required ReviewsData Reviews { get; set; }
-    public required CountData RepositoriesContributedTo { get; set; }
-    public required CountData PullRequests { get; set; }
+    public string Login { get; set; } = "";
+    public ContributionsData? Commits { get; set; }
+    public ReviewsData? Reviews { get; set; }
+    public CountData? RepositoriesContributedTo { get; set; }
+    public CountData? PullRequests { get; set; }
     public CountData? MergedPullRequests { get; set; }
-    public required CountData OpenIssues { get; set; }
-    public required CountData ClosedIssues { get; set; }
-    public required CountData Followers { get; set; }
+    public CountData? OpenIssues { get; set; }
+    public CountData? ClosedIssues { get; set; }
+    public CountData? Followers { get; set; }
     public CountData? RepositoryDiscussions { get; set; }
     public CountData? RepositoryDiscussionComments { get; set; }
-    public required RepositoriesData Repositories { get; set; }
+    public RepositoriesData? Repositories { get; set; }
 }
 
 internal sealed class ContributionsData
@@ -821,14 +832,14 @@ internal sealed class CountData
 internal sealed class RepositoriesData
 {
     public int TotalCount { get; set; }
-    public required List<RepoNode> Nodes { get; set; }
-    public required PageInfo PageInfo { get; set; }
+    public List<RepoNode> Nodes { get; set; } = [];
+    public PageInfo PageInfo { get; set; } = new();
 }
 
 internal sealed class RepoNode
 {
-    public required string Name { get; set; }
-    public required StargazersData Stargazers { get; set; }
+    public string Name { get; set; } = "";
+    public StargazersData Stargazers { get; set; } = new();
 }
 
 internal sealed class StargazersData

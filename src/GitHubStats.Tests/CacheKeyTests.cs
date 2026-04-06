@@ -54,7 +54,7 @@ public class CacheKeyTests
     [Fact]
     public void TopLangsKey_DoesNotIncludeTheme()
     {
-        var key = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0);
+        var key = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0, false);
 
         Assert.DoesNotContain("theme", key);
         Assert.StartsWith("langs:", key);
@@ -63,8 +63,8 @@ public class CacheKeyTests
     [Fact]
     public void TopLangsKey_VariesByWeights()
     {
-        var key1 = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0);
-        var key2 = TopLanguagesCardService.GenerateCacheKey("user", null, 0.5, 0.5);
+        var key1 = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0, false);
+        var key2 = TopLanguagesCardService.GenerateCacheKey("user", null, 0.5, 0.5, false);
 
         Assert.NotEqual(key1, key2);
     }
@@ -72,8 +72,8 @@ public class CacheKeyTests
     [Fact]
     public void TopLangsKey_VariesByExcludeRepos()
     {
-        var key1 = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0);
-        var key2 = TopLanguagesCardService.GenerateCacheKey("user", new List<string> { "repo1" }, 1, 0);
+        var key1 = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0, false);
+        var key2 = TopLanguagesCardService.GenerateCacheKey("user", new List<string> { "repo1" }, 1, 0, false);
 
         Assert.NotEqual(key1, key2);
     }

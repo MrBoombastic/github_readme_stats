@@ -170,8 +170,8 @@ if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
     {
         // Use a short timeout for the startup check to avoid blocking
         var options = StackExchange.Redis.ConfigurationOptions.Parse(cacheOptions.RedisConnectionString);
-        options.ConnectTimeout = 2000; 
-        
+        options.ConnectTimeout = 2000;
+
         using var redis = StackExchange.Redis.ConnectionMultiplexer.Connect(options);
         if (redis.IsConnected)
         {

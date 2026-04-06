@@ -15,9 +15,14 @@ public class EndpointCacheBehaviorTests
 
         var cachedStats = new UserStats
         {
-            Name = "Test User", Login = "testuser",
-            TotalStars = 100, TotalCommits = 500, TotalPRs = 50,
-            TotalIssues = 20, TotalFollowers = 10, TotalRepos = 30,
+            Name = "Test User",
+            Login = "testuser",
+            TotalStars = 100,
+            TotalCommits = 500,
+            TotalPRs = 50,
+            TotalIssues = 20,
+            TotalFollowers = 10,
+            TotalRepos = 30,
             Rank = new UserRank { Level = "A+", Percentile = 5 }
         };
 
@@ -53,7 +58,7 @@ public class EndpointCacheBehaviorTests
     {
         var statsKey = StatsCardService.GenerateCacheKey("user", false, null, false, false, false, null);
         var streakKey = StreakCardService.GenerateCacheKey("user", null);
-        var langsKey = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0);
+        var langsKey = TopLanguagesCardService.GenerateCacheKey("user", null, 1, 0, false);
 
         Assert.NotEqual(statsKey, streakKey);
         Assert.NotEqual(statsKey, langsKey);

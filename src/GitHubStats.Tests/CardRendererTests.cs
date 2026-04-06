@@ -13,9 +13,14 @@ public class CardRendererTests
     {
         var stats = new UserStats
         {
-            Name = "Test User", Login = "testuser",
-            TotalStars = 100, TotalCommits = 500, TotalPRs = 50,
-            TotalIssues = 20, TotalFollowers = 10, TotalRepos = 30,
+            Name = "Test User",
+            Login = "testuser",
+            TotalStars = 100,
+            TotalCommits = 500,
+            TotalPRs = 50,
+            TotalIssues = 20,
+            TotalFollowers = 10,
+            TotalRepos = 30,
             Rank = new UserRank { Level = "A+", Percentile = 5 }
         };
 
@@ -30,9 +35,14 @@ public class CardRendererTests
     {
         var stats = new UserStats
         {
-            Name = "User", Login = "user",
-            TotalStars = 10, TotalCommits = 50, TotalPRs = 5,
-            TotalIssues = 2, TotalFollowers = 1, TotalRepos = 3,
+            Name = "User",
+            Login = "user",
+            TotalStars = 10,
+            TotalCommits = 50,
+            TotalPRs = 5,
+            TotalIssues = 2,
+            TotalFollowers = 1,
+            TotalRepos = 3,
             Rank = new UserRank { Level = "B+", Percentile = 30 }
         };
 

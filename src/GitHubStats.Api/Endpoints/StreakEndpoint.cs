@@ -101,6 +101,14 @@ public static class StreakEndpoint
                     renderer.RenderErrorCard(ex.Message),
                     "image/svg+xml");
             }
+            catch (Exception)
+            {
+                CacheHeaders.SetError(context);
+                context.Response.ContentType = "image/svg+xml";
+                return Results.Content(
+                    renderer.RenderErrorCard($"Something went wrong fetching streak for '{username}'"),
+                    "image/svg+xml");
+            }
         })
         .WithName("GetStreak")
         .WithTags("Streak")

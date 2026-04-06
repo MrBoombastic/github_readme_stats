@@ -103,6 +103,14 @@ public static class StatsEndpoint
                     renderer.RenderErrorCard(ex.Message),
                     "image/svg+xml");
             }
+            catch (Exception)
+            {
+                CacheHeaders.SetError(context);
+                context.Response.ContentType = "image/svg+xml";
+                return Results.Content(
+                    renderer.RenderErrorCard($"Something went wrong fetching stats for '{username}'"),
+                    "image/svg+xml");
+            }
         })
         .WithName("GetStats")
         .WithTags("Stats")

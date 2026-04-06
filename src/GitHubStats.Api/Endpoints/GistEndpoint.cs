@@ -74,6 +74,14 @@ public static class GistEndpoint
                     renderer.RenderErrorCard(ex.Message),
                     "image/svg+xml");
             }
+            catch (Exception)
+            {
+                CacheHeaders.SetError(context);
+                context.Response.ContentType = "image/svg+xml";
+                return Results.Content(
+                    renderer.RenderErrorCard($"Something went wrong fetching gist '{id}'"),
+                    "image/svg+xml");
+            }
         })
         .WithName("GetGist")
         .WithTags("Gist")

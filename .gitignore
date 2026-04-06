@@ -1,23 +1,31 @@
+# Build output
+**/bin/
+**/obj/
+
+# IDE / Editor
+.idea/
+.vs/
+*.user
+*.suo
+*.DotSettings.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
 /old
 /docs
-.DS_Store
-/src/GitHubStats.Api/bin
-/src/GitHubStats.Api/obj
-/src/GitHubStats.Application/bin
-/src/GitHubStats.Application/obj
-/src/GitHubStats.Infrastructure/obj
-/src/GitHubStats.Rendering/bin
-/src/GitHubStats.Rendering/obj
-/src/GitHubStats.Infrastructure/bin
-/src/GitHubStats.Domain/bin
-/src/GitHubStats.Domain/obj
-/src/GitHubStats.Tests/bin
-/src/GitHubStats.Tests/obj
-/src/.idea
-/src/.vs
-src/GitHubStats.Api/Properties/PublishProfiles/FolderProfile.pubxml.user
-src/GitHubStats.Api/GitHubStats.Api.csproj.user
-src/GitHubStats.Api/Properties/PublishProfiles/FolderProfile.pubxml
+
+# Secrets / Environment
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# Publish profiles
+**/Properties/PublishProfiles/
+
+# Claude
 /.claude
-appsettings.Development.json
-.idea
+
+# Playwright
+.playwright-mcp/

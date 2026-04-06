@@ -116,6 +116,14 @@ public static class TopLangsEndpoint
                     renderer.RenderErrorCard(ex.Message),
                     "image/svg+xml");
             }
+            catch (Exception)
+            {
+                CacheHeaders.SetError(context);
+                context.Response.ContentType = "image/svg+xml";
+                return Results.Content(
+                    renderer.RenderErrorCard($"Something went wrong fetching languages for '{username}'"),
+                    "image/svg+xml");
+            }
         })
         .WithName("GetTopLangs")
         .WithTags("Languages")
