@@ -181,7 +181,8 @@ public sealed class CardRenderer : ICardRenderer
             HideTitle = true, // Always hide title for streak card
             DisableAnimations = options.DisableAnimations,
             A11yTitle = $"GitHub Streak Stats for {stats.Username}",
-            A11yDesc = $"Total Contributions: {stats.TotalContributions}, Current Streak: {stats.CurrentStreak.Length} days, Longest Streak: {stats.LongestStreak.Length} days"
+            A11yDesc =
+                $"Total Contributions: {stats.TotalContributions}, Current Streak: {stats.CurrentStreak.Length} days, Longest Streak: {stats.LongestStreak.Length} days"
         };
 
         card.CustomCss = GetStreakCardCss(colors, options);
@@ -214,6 +215,7 @@ public sealed class CardRenderer : ICardRenderer
         {
             body.Text(secondaryMessage, 0, 25, "error");
         }
+
         body.EndGroup();
 
         return card.Render(body.ToString());
@@ -232,7 +234,8 @@ public sealed class CardRenderer : ICardRenderer
         if (options.Show?.Contains("prs_merged") == true) visibleStats++;
 
         if (options.Hide != null)
-            visibleStats -= options.Hide.Count(h => new[] { "stars", "commits", "prs", "issues", "contribs" }.Contains(h));
+            visibleStats -=
+                options.Hide.Count(h => new[] { "stars", "commits", "prs", "issues", "contribs" }.Contains(h));
 
         return Math.Max(150, 45 + visibleStats * lineHeight);
     }
@@ -281,16 +284,20 @@ public sealed class CardRenderer : ICardRenderer
         };
 
         if (options.Show?.Contains("reviews") == true)
-            statItems.Add(("Total Reviews", FormatNumber(stats.TotalReviews, options.NumberFormat), Icons.Reviews, "reviews"));
+            statItems.Add(("Total Reviews", FormatNumber(stats.TotalReviews, options.NumberFormat), Icons.Reviews,
+                "reviews"));
 
         if (options.Show?.Contains("discussions_started") == true)
-            statItems.Add(("Discussions Started", FormatNumber(stats.TotalDiscussionsStarted, options.NumberFormat), Icons.Discussions, "discussions_started"));
+            statItems.Add(("Discussions Started", FormatNumber(stats.TotalDiscussionsStarted, options.NumberFormat),
+                Icons.Discussions, "discussions_started"));
 
         if (options.Show?.Contains("discussions_answered") == true)
-            statItems.Add(("Discussions Answered", FormatNumber(stats.TotalDiscussionsAnswered, options.NumberFormat), Icons.Discussions, "discussions_answered"));
+            statItems.Add(("Discussions Answered", FormatNumber(stats.TotalDiscussionsAnswered, options.NumberFormat),
+                Icons.Discussions, "discussions_answered"));
 
         if (options.Show?.Contains("prs_merged") == true)
-            statItems.Add(("Total PRs Merged", FormatNumber(stats.TotalPRsMerged, options.NumberFormat), Icons.PullRequest, "prs_merged"));
+            statItems.Add(("Total PRs Merged", FormatNumber(stats.TotalPRsMerged, options.NumberFormat),
+                Icons.PullRequest, "prs_merged"));
 
         // Filter out hidden stats
         if (options.Hide != null)
@@ -300,11 +307,13 @@ public sealed class CardRenderer : ICardRenderer
 
         foreach (var (label, value, icon, testId) in statItems)
         {
-            body.Append($@"<g class=""stagger"" style=""animation-delay: {staggerDelay}ms"" transform=""translate(0, {y})"">");
+            body.Append(
+                $@"<g class=""stagger"" style=""animation-delay: {staggerDelay}ms"" transform=""translate(0, {y})"">");
 
             if (showIcons)
             {
-                body.Append($@"<svg class=""icon"" viewBox=""0 0 16 16"" version=""1.1"" width=""16"" height=""16"" x=""0"" y=""0"">{icon}</svg>");
+                body.Append(
+                    $@"<svg class=""icon"" viewBox=""0 0 16 16"" version=""1.1"" width=""16"" height=""16"" x=""0"" y=""0"">{icon}</svg>");
                 body.Append($@"<text class=""stat bold"" x=""25"" y=""12.5"">{HttpUtility.HtmlEncode(label)}:</text>");
             }
             else
@@ -312,7 +321,8 @@ public sealed class CardRenderer : ICardRenderer
                 body.Append($@"<text class=""stat bold"" x=""0"" y=""12.5"">{HttpUtility.HtmlEncode(label)}:</text>");
             }
 
-            body.Append($@"<text class=""stat"" x=""{(showIcons ? 190 : 165)}"" y=""12.5"" data-testid=""{testId}"">{value}</text>");
+            body.Append(
+                $@"<text class=""stat"" x=""{(showIcons ? 190 : 165)}"" y=""12.5"" data-testid=""{testId}"">{value}</text>");
             body.Append("</g>");
 
             y += lineHeight;
@@ -346,10 +356,12 @@ public sealed class CardRenderer : ICardRenderer
         var dashOffset = circumference * (1 - progress / 100);
 
         var ringColor = colors.RingColor ?? colors.TitleColor;
-        svg.Append($@"<circle cx=""0"" cy=""0"" r=""40"" fill=""none"" stroke=""#{ringColor}"" stroke-width=""5"" stroke-dasharray=""{circumference:F2}"" stroke-dashoffset=""{dashOffset:F2}"" transform=""rotate(-90)"" stroke-linecap=""round""/>");
+        svg.Append(SvgInvariant(
+            $@"<circle cx=""0"" cy=""0"" r=""40"" fill=""none"" stroke=""#{ringColor}"" stroke-width=""5"" stroke-dasharray=""{circumference:F2}"" stroke-dashoffset=""{dashOffset:F2}"" transform=""rotate(-90)"" stroke-linecap=""round""/>"));
 
         // Rank text
-        svg.Append($@"<text class=""rank-text"" x=""0"" y=""0"" text-anchor=""middle"" dominant-baseline=""central"">{rank.Level}</text>");
+        svg.Append(
+            $@"<text class=""rank-text"" x=""0"" y=""0"" text-anchor=""middle"" dominant-baseline=""central"">{rank.Level}</text>");
 
         svg.EndGroup();
 
@@ -371,7 +383,8 @@ public sealed class CardRenderer : ICardRenderer
 ";
     }
 
-    private static string RenderRepoCardBody(Repository repo, List<string> wrappedDesc, int height, CardColors colors, RepoCardOptions options)
+    private static string RenderRepoCardBody(Repository repo, List<string> wrappedDesc, int height, CardColors colors,
+        RepoCardOptions options)
     {
         using var body = new SvgBuilder(2048);
 
@@ -391,6 +404,7 @@ public sealed class CardRenderer : ICardRenderer
         {
             body.Append($@"<tspan dy=""1.2em"" x=""25"">{HttpUtility.HtmlEncode(line)}</tspan>");
         }
+
         body.Append("</text>");
 
         // Footer with language, stars, forks
@@ -403,7 +417,8 @@ public sealed class CardRenderer : ICardRenderer
         {
             var langColor = repo.PrimaryLanguage.Color ?? "#858585";
             body.Circle(5, 6, 5, fill: langColor);
-            body.Append($@"<text class=""gray"" x=""15"" y=""10"">{HttpUtility.HtmlEncode(repo.PrimaryLanguage.Name)}</text>");
+            body.Append(
+                $@"<text class=""gray"" x=""15"" y=""10"">{HttpUtility.HtmlEncode(repo.PrimaryLanguage.Name)}</text>");
             x += (repo.PrimaryLanguage.Name.Length * 8) + 40;
         }
 
@@ -438,7 +453,8 @@ public sealed class CardRenderer : ICardRenderer
 ";
     }
 
-    private static List<LanguageStats> FilterLanguages(IReadOnlyList<LanguageStats> langs, IReadOnlyList<string>? hide, int count)
+    private static List<LanguageStats> FilterLanguages(IReadOnlyList<LanguageStats> langs, IReadOnlyList<string>? hide,
+        int count)
     {
         var filtered = langs.AsEnumerable();
         if (hide?.Count > 0)
@@ -446,16 +462,20 @@ public sealed class CardRenderer : ICardRenderer
             var hideSet = new HashSet<string>(hide, StringComparer.OrdinalIgnoreCase);
             filtered = filtered.Where(l => !hideSet.Contains(l.Name));
         }
+
         return filtered.Take(count).ToList();
     }
 
-    private static (int width, int height) CalculateTopLangsCardDimensions(List<LanguageStats> langs, TopLanguagesCardOptions options)
+    private static (int width, int height) CalculateTopLangsCardDimensions(List<LanguageStats> langs,
+        TopLanguagesCardOptions options)
     {
         var langCount = langs.Count;
         var longestName = langs.Any() ? langs.Max(l => l.Name.Length) : 0;
-        
+        var totalSize = langs.Sum(l => l.Size);
+        var maxLegendTextWidth = EstimateMaxLegendTextWidth(langs, totalSize, options);
+
         // Dynamic width estimation
-        int estimatedNameWidth = (int)(longestName * 8.5); 
+        int estimatedNameWidth = (int)(longestName * 8.5);
         int width = options.CardWidth ?? 300;
         int height;
 
@@ -469,14 +489,15 @@ public sealed class CardRenderer : ICardRenderer
                 contentHeight = 35 + (int)Math.Ceiling(langCount / 2.0) * 25; // Bar(10) + Space(25) + Labels
                 break;
             case "donut":
-                int minDonutWidth = 240 + estimatedNameWidth + 60;
-                width = options.CardWidth ?? Math.Max(350, minDonutWidth);
+                // Keep auto-width bounded so very long legends do not create excessively wide cards.
+                int minDonutWidth = 240 + (int)Math.Ceiling(maxLegendTextWidth) + 20;
+                width = options.CardWidth ?? Math.Min(700, Math.Max(350, minDonutWidth));
                 contentHeight = Math.Max(210, langCount * 25 + 20); // Center chart at 105
                 break;
             case "donut-vertical":
             case "pie":
-                int minVerticalWidth = (estimatedNameWidth + 90) * 2;
-                width = options.CardWidth ?? Math.Max(300, minVerticalWidth);
+                int minVerticalWidth = 50 + ((int)Math.Ceiling(maxLegendTextWidth) + 20) * 2;
+                width = options.CardWidth ?? Math.Min(700, Math.Max(300, minVerticalWidth));
                 contentHeight = 220 + (int)Math.Ceiling(langCount / 2.0) * 25;
                 break;
             default: // normal
@@ -491,6 +512,71 @@ public sealed class CardRenderer : ICardRenderer
         height = options.HideTitle ? contentHeight + 25 + 30 : contentHeight + 55;
 
         return (width, options.CardHeight ?? height);
+    }
+
+    private static double EstimateMaxLegendTextWidth(List<LanguageStats> langs, long totalSize,
+        TopLanguagesCardOptions options)
+    {
+        var maxWidth = 0d;
+
+        foreach (var lang in langs)
+        {
+            var percent = totalSize > 0 ? (double)lang.Size / totalSize * 100 : 0;
+            var displayValue = options.StatsFormat == "bytes"
+                ? FormatBytes(lang.Size)
+                : $"{percent:F1}%";
+            var label = $"{lang.Name} ({displayValue})";
+            maxWidth = Math.Max(maxWidth, EstimateSvgTextWidth(label));
+        }
+
+        return maxWidth;
+    }
+
+    private static double EstimateSvgTextWidth(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 0;
+
+        // Fast width heuristic for 11px legend labels: good enough for layout sizing without font measurement APIs.
+        const double averageGlyphWidth = 6.4; // 11px UI font heuristic + padding
+        var width = text.Length * averageGlyphWidth;
+
+        foreach (var c in text)
+        {
+            if ("ilI.,:;|'` ".Contains(c))
+                width -= 2.6;
+            else if ("MW@#%QG".Contains(c))
+                width += 1.8;
+        }
+
+        return Math.Max(0, width + 8);
+    }
+
+    private static string TruncateToEstimatedWidth(string text, double maxWidth)
+    {
+        const string suffix = "...";
+
+        if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+            return string.Empty;
+
+        if (EstimateSvgTextWidth(text) <= maxWidth)
+            return text;
+
+        if (EstimateSvgTextWidth(suffix) >= maxWidth)
+            return suffix;
+
+        // Trim until the estimated width fits, while always preserving an ellipsis marker.
+        var trimLength = text.Length;
+        while (trimLength > 0)
+        {
+            var candidate = text[..trimLength] + suffix;
+            if (EstimateSvgTextWidth(candidate) <= maxWidth)
+                return candidate;
+
+            trimLength--;
+        }
+
+        return suffix;
     }
 
     private static string RenderTopLangsBody(List<LanguageStats> langs, TopLanguagesCardOptions options, int width)
@@ -512,7 +598,8 @@ public sealed class CardRenderer : ICardRenderer
         };
     }
 
-    private static string RenderNormalLayout(List<LanguageStats> langs, long totalSize, int width, TopLanguagesCardOptions options)
+    private static string RenderNormalLayout(List<LanguageStats> langs, long totalSize, int width,
+        TopLanguagesCardOptions options)
     {
         using var body = new SvgBuilder(2048);
         body.StartGroup(transform: "translate(25, 0)");
@@ -528,9 +615,10 @@ public sealed class CardRenderer : ICardRenderer
                 ? FormatBytes(lang.Size)
                 : $"{percent:F2}%";
 
-            body.Append($@"<g class=""stagger"" style=""animation-delay: {staggerDelay}ms"" transform=""translate(0, {y})"">");
+            body.Append(
+                $@"<g class=""stagger"" style=""animation-delay: {staggerDelay}ms"" transform=""translate(0, {y})"">");
             body.Append($@"<text class=""lang-name"" x=""2"" y=""15"">{HttpUtility.HtmlEncode(lang.Name)}</text>");
-            
+
             if (!options.HideProgress)
             {
                 body.Append($@"<text class=""lang-percent"" x=""{barWidth + 15}"" y=""34"">{displayValue}</text>");
@@ -539,7 +627,7 @@ public sealed class CardRenderer : ICardRenderer
             // Progress bar
             var safePercent = Math.Max(0, Math.Min(100, percent));
             var progress = barWidth * safePercent / 100;
-            
+
             body.Rect(0, 25, barWidth, 8, fill: "#ddd", rx: 5);
             body.Rect(0, 25, progress, 8, fill: lang.Color, rx: 5);
 
@@ -553,14 +641,19 @@ public sealed class CardRenderer : ICardRenderer
         return body.ToString();
     }
 
-    private static string RenderCompactLayout(List<LanguageStats> langs, long totalSize, int width, TopLanguagesCardOptions options)
+    private static string RenderCompactLayout(List<LanguageStats> langs, long totalSize, int width,
+        TopLanguagesCardOptions options)
     {
         using var body = new SvgBuilder(2048);
 
         // Progress bar - proportional segment allocation
+        const int barX = 25;
+        const int barY = 0;
+        const int barHeight = 8;
+        const int barRadius = 5;
         var barWidth = width - 50;
-        body.Append($@"<mask id=""rect-mask""><rect x=""0"" y=""0"" width=""{barWidth}"" height=""8"" fill=""white"" rx=""5""/></mask>");
-        body.StartGroup(transform: "translate(25, 0)");
+        body.Append(
+            $@"<mask id=""rect-mask"" maskUnits=""userSpaceOnUse"" maskContentUnits=""userSpaceOnUse"" x=""{barX}"" y=""{barY}"" width=""{barWidth}"" height=""{barHeight}""><rect x=""{barX}"" y=""{barY}"" width=""{barWidth}"" height=""{barHeight}"" fill=""white"" rx=""{barRadius}""/></mask>");
 
         double progressX = 0;
         for (var i = 0; i < langs.Count; i++)
@@ -575,11 +668,11 @@ public sealed class CardRenderer : ICardRenderer
 
             if (segmentWidth > 0)
             {
-                body.Append($@"<rect x=""{progressX}"" y=""0"" width=""{segmentWidth}"" height=""8"" fill=""{lang.Color}"" mask=""url(#rect-mask)""/>");
+                body.Append(SvgInvariant(
+                    $@"<rect x=""{barX + progressX}"" y=""{barY}"" width=""{segmentWidth}"" height=""{barHeight}"" fill=""{lang.Color}"" mask=""url(#rect-mask)""/>"));
                 progressX += segmentWidth;
             }
         }
-        body.EndGroup();
 
         // Language labels
         body.StartGroup(transform: "translate(25, 25)");
@@ -602,16 +695,19 @@ public sealed class CardRenderer : ICardRenderer
 
             body.Circle(x + 5, y + 6, 5, fill: lang.Color);
             var labelText = options.HideProgress ? lang.Name : $"{lang.Name} {displayValue}";
-            body.Append($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(labelText)}</text>");
+            body.Append(
+                $@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(labelText)}</text>");
 
-            if (isLeftCol) col1Y += 25; else col2Y += 25;
+            if (isLeftCol) col1Y += 25;
+            else col2Y += 25;
         }
 
         body.EndGroup();
         return body.ToString();
     }
 
-    private static string RenderDonutLayout(List<LanguageStats> langs, long totalSize, int width, TopLanguagesCardOptions options, bool isDonut)
+    private static string RenderDonutLayout(List<LanguageStats> langs, long totalSize, int width,
+        TopLanguagesCardOptions options, bool isDonut)
     {
         using var body = new SvgBuilder(4096);
         const double radius = 80;
@@ -622,7 +718,7 @@ public sealed class CardRenderer : ICardRenderer
         // Draw segments
         body.StartGroup(transform: "translate(25, 0)");
         double currentAngle = -Math.PI / 2;
-        
+
         foreach (var lang in langs)
         {
             var percent = totalSize > 0 ? (double)lang.Size / totalSize : 0;
@@ -630,7 +726,7 @@ public sealed class CardRenderer : ICardRenderer
 
             var sweepAngle = 2 * Math.PI * percent;
             var endAngle = currentAngle + sweepAngle;
-            
+
             body.Append(RenderDonutSegment(cx, cy, radius, innerRadius, currentAngle, endAngle, lang.Color));
             currentAngle = endAngle;
         }
@@ -638,15 +734,20 @@ public sealed class CardRenderer : ICardRenderer
         // Legends
         var legendX = cx + radius + 40;
         var legendY = 25; // Adjusted legend start position
+        var legendTextX = legendX + 15;
+        // Reserve right-side padding so labels never render flush against the card edge.
+        var maxLegendTextWidth = Math.Max(40, width - legendTextX - 15);
         foreach (var lang in langs)
         {
             var percent = totalSize > 0 ? (double)lang.Size / totalSize * 100 : 0;
             var displayValue = options.StatsFormat == "bytes"
                 ? FormatBytes(lang.Size)
                 : $"{percent:F1}%";
+            var legendLabel = TruncateToEstimatedWidth($"{lang.Name} ({displayValue})", maxLegendTextWidth);
 
             body.Circle(legendX, legendY - 4, 5, fill: lang.Color);
-            body.Append($@"<text class=""lang-name"" x=""{legendX + 15}"" y=""{legendY}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>");
+            body.Append(SvgInvariant(
+                $@"<text class=""lang-name"" x=""{legendTextX}"" y=""{legendY}"">{HttpUtility.HtmlEncode(legendLabel)}</text>"));
             legendY += 25;
         }
 
@@ -654,7 +755,8 @@ public sealed class CardRenderer : ICardRenderer
         return body.ToString();
     }
 
-    private static string RenderDonutVerticalLayout(List<LanguageStats> langs, long totalSize, int width, TopLanguagesCardOptions options)
+    private static string RenderDonutVerticalLayout(List<LanguageStats> langs, long totalSize, int width,
+        TopLanguagesCardOptions options)
     {
         using var body = new SvgBuilder(4096);
         const double radius = 80;
@@ -675,8 +777,9 @@ public sealed class CardRenderer : ICardRenderer
         }
 
         // Legend below in two columns
-        body.StartGroup(transform: $"translate(25, {cy + radius + 30})");
+        body.StartGroup(transform: SvgInvariant($"translate(25, {cy + radius + 30})"));
         var colWidth = (width - 50) / 2.0;
+        var maxLegendTextWidth = Math.Max(30, colWidth - 20);
         for (var i = 0; i < langs.Count; i++)
         {
             var lang = langs[i];
@@ -684,28 +787,33 @@ public sealed class CardRenderer : ICardRenderer
             var displayValue = options.StatsFormat == "bytes"
                 ? FormatBytes(lang.Size)
                 : $"{percent:F1}%";
+            var legendLabel = TruncateToEstimatedWidth($"{lang.Name} ({displayValue})", maxLegendTextWidth);
 
             var isLeft = i % 2 == 0;
             var x = isLeft ? 0 : colWidth;
             var y = (i / 2) * 25;
 
             body.Circle(x + 5, y + 6, 5, fill: lang.Color);
-            body.Append($@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(lang.Name)} ({displayValue})</text>");
+            body.Append(SvgInvariant(
+                $@"<text class=""lang-name"" x=""{x + 15}"" y=""{y + 10}"">{HttpUtility.HtmlEncode(legendLabel)}</text>"));
         }
+
         body.EndGroup();
 
         return body.ToString();
     }
 
-    private static string RenderDonutSegment(double cx, double cy, double outerR, double innerR, double startAngle, double endAngle, string fill)
+    private static string RenderDonutSegment(double cx, double cy, double outerR, double innerR, double startAngle,
+        double endAngle, string fill)
     {
         // Handle full circle case to prevent path artifacts
         if (endAngle - startAngle >= 2 * Math.PI - 0.0001)
         {
             if (innerR > 0)
-                return $@"<path d=""M {cx} {cy - outerR} A {outerR} {outerR} 0 1 1 {cx - 0.01} {cy - outerR} M {cx} {cy - innerR} A {innerR} {innerR} 0 1 0 {cx - 0.01} {cy - innerR} Z"" fill=""{fill}""/>";
+                return SvgInvariant(
+                    $@"<path d=""M {cx} {cy - outerR} A {outerR} {outerR} 0 1 1 {cx - 0.01} {cy - outerR} M {cx} {cy - innerR} A {innerR} {innerR} 0 1 0 {cx - 0.01} {cy - innerR} Z"" fill=""{fill}""/>");
             else
-                return $@"<circle cx=""{cx}"" cy=""{cy}"" r=""{outerR}"" fill=""{fill}""/>";
+                return SvgInvariant($@"<circle cx=""{cx}"" cy=""{cy}"" r=""{outerR}"" fill=""{fill}""/>");
         }
 
         var x1 = cx + outerR * Math.Cos(startAngle);
@@ -720,7 +828,15 @@ public sealed class CardRenderer : ICardRenderer
 
         var largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
 
-        return $@"<path d=""M {x1} {y1} A {outerR} {outerR} 0 {largeArc} 1 {x2} {y2} L {x3} {y3} A {innerR} {innerR} 0 {largeArc} 0 {x4} {y4} Z"" fill=""{fill}""/>";
+        // Pie layout (innerR == 0): draw a sector from center to avoid zero-radius arc.
+        if (innerR <= 0)
+        {
+            return SvgInvariant(
+                $@"<path d=""M {cx} {cy} L {x1} {y1} A {outerR} {outerR} 0 {largeArc} 1 {x2} {y2} L {cx} {cy} Z"" fill=""{fill}""/>");
+        }
+
+        return SvgInvariant(
+            $@"<path d=""M {x1} {y1} A {outerR} {outerR} 0 {largeArc} 1 {x2} {y2} L {x3} {y3} A {innerR} {innerR} 0 {largeArc} 0 {x4} {y4} Z"" fill=""{fill}""/>");
     }
 
     #endregion
@@ -746,6 +862,7 @@ public sealed class CardRenderer : ICardRenderer
         {
             body.Append($@"<tspan dy=""1.2em"" x=""25"">{HttpUtility.HtmlEncode(line)}</tspan>");
         }
+
         body.Append("</text>");
 
         // Footer
@@ -804,6 +921,7 @@ public sealed class CardRenderer : ICardRenderer
                 {
                     lines.Add(currentLine);
                 }
+
                 currentLine = word;
             }
         }
@@ -920,7 +1038,8 @@ public sealed class CardRenderer : ICardRenderer
 ";
     }
 
-    private static string RenderStreakCardBody(StreakStats stats, StreakCardOptions options, CardColors colors, int width, int height, int visibleSections)
+    private static string RenderStreakCardBody(StreakStats stats, StreakCardOptions options, CardColors colors,
+        int width, int height, int visibleSections)
     {
         using var body = new SvgBuilder(4096);
 
@@ -934,9 +1053,9 @@ public sealed class CardRenderer : ICardRenderer
 
         // Symmetric vertical positions (same for all sections)
         var centerY = (height / 2.0) - bodyOffset;
-        var numberY = centerY - 8;     // Number at top
-        var labelY = centerY + 22;      // Label in middle
-        var dateY = centerY + 38;       // Date at bottom
+        var numberY = centerY - 8; // Number at top
+        var labelY = centerY + 22; // Label in middle
+        var dateY = centerY + 38; // Date at bottom
 
         var currentSectionIndex = 0;
 
@@ -987,36 +1106,44 @@ public sealed class CardRenderer : ICardRenderer
         return body.ToString();
     }
 
-    private static string RenderModernSection(int x, double numberY, double labelY, double dateY, string value, string label, string dateRange, string cssClass, int animationDelay)
+    private static string RenderModernSection(int x, double numberY, double labelY, double dateY, string value,
+        string label, string dateRange, string cssClass, int animationDelay)
     {
-        return $@"
+        return SvgInvariant($@"
 <g class=""streak-section"" style=""animation-delay: {animationDelay}ms"">
     <text class=""stat-value number-pop {cssClass}"" x=""{x}"" y=""{numberY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 50}ms"">{HttpUtility.HtmlEncode(value)}</text>
     <text class=""stat-label fade-in {cssClass}"" x=""{x}"" y=""{labelY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 100}ms"">{HttpUtility.HtmlEncode(label)}</text>
     <text class=""stat-date fade-in"" x=""{x}"" y=""{dateY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 150}ms"">{HttpUtility.HtmlEncode(dateRange)}</text>
-</g>";
+</g>");
     }
 
-    private static string RenderModernCurrentStreak(int x, double ringY, double numberY, double labelY, double dateY, string value, string label, string dateRange, int ringRadius, int animationDelay, CardColors colors)
+    private static string RenderModernCurrentStreak(int x, double ringY, double numberY, double labelY, double dateY,
+        string value, string label, string dateRange, int ringRadius, int animationDelay, CardColors colors)
     {
         // Modern gradient ring with animated draw effect
         var circumference = 2 * Math.PI * ringRadius;
 
         // Background ring (subtle)
-        var ringBg = $@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" stroke=""#{colors.TextColor}"" stroke-width=""3"" stroke-opacity=""0.08""/>";
+        var ringBg =
+            SvgInvariant(
+                $@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" stroke=""#{colors.TextColor}"" stroke-width=""3"" stroke-opacity=""0.08""/>");
 
         // Animated gradient ring
-        var ring = $@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" class=""ring ring-anim glow"" stroke-width=""3"" stroke-linecap=""round"" transform=""rotate(-90 {x} {ringY:F1})"" style=""animation-delay: {animationDelay + 100}ms""/>";
+        var ring = SvgInvariant(
+            $@"<circle cx=""{x}"" cy=""{ringY:F1}"" r=""{ringRadius}"" fill=""none"" class=""ring ring-anim glow"" stroke-width=""3"" stroke-linecap=""round"" transform=""rotate(-90 {x} {ringY:F1})"" style=""animation-delay: {animationDelay + 100}ms""/>");
 
-        return $@"
+        return SvgInvariant($@"
 <g class=""streak-section"" style=""animation-delay: {animationDelay}ms"">
     {ringBg}
     {ring}
     <text class=""stat-value number-pop current"" x=""{x}"" y=""{numberY:F1}"" text-anchor=""middle"" dominant-baseline=""middle"" style=""animation-delay: {animationDelay + 200}ms"">{HttpUtility.HtmlEncode(value)}</text>
     <text class=""stat-label fade-in current"" x=""{x}"" y=""{labelY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 300}ms"">{HttpUtility.HtmlEncode(label)}</text>
     <text class=""stat-date fade-in"" x=""{x}"" y=""{dateY:F1}"" text-anchor=""middle"" style=""animation-delay: {animationDelay + 350}ms"">{HttpUtility.HtmlEncode(dateRange)}</text>
-</g>";
+</g>");
     }
+
+    // Force invariant formatting so SVG numeric attributes always use '.' regardless of server locale.
+    private static string SvgInvariant(FormattableString svg) => FormattableString.Invariant(svg);
 
     private static string FormatDateRange(DateOnly? start, DateOnly? end)
     {

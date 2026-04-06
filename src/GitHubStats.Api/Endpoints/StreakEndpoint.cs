@@ -2,7 +2,6 @@ using GitHubStats.Application.Services;
 using GitHubStats.Domain.Exceptions;
 using GitHubStats.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace GitHubStats.Api.Endpoints;
@@ -90,15 +89,13 @@ public static class StreakEndpoint
                     cacheSeconds.HasValue ? TimeSpan.FromSeconds(cacheSeconds.Value) : null,
                     cancellationToken);
 
-                // Set cache headers (30 minutes default)
-                SetCacheHeaders(context, cacheSeconds ?? 1800);
-
+                CacheHeaders.Set(context, cacheSeconds ?? 1800);
                 context.Response.ContentType = "image/svg+xml";
                 return Results.Content(svg, "image/svg+xml");
             }
             catch (DomainException ex)
             {
-                SetErrorCacheHeaders(context);
+                CacheHeaders.SetError(context);
                 context.Response.ContentType = "image/svg+xml";
                 return Results.Content(
                     renderer.RenderErrorCard(ex.Message),
@@ -109,15 +106,5 @@ public static class StreakEndpoint
         .WithTags("Streak")
         .RequireRateLimiting("perIp")
         .CacheOutput("StreakCard");
-    }
-
-    private static void SetCacheHeaders(HttpContext context, int seconds)
-    {
-        context.Response.Headers.CacheControl = $"max-age={seconds}, s-maxage={seconds}, stale-while-revalidate=86400";
-    }
-
-    private static void SetErrorCacheHeaders(HttpContext context)
-    {
-        context.Response.Headers.CacheControl = "max-age=600, s-maxage=600, stale-while-revalidate=86400";
     }
 }

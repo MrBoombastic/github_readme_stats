@@ -9,8 +9,43 @@ public sealed class CacheOptions
 
     /// <summary>
     /// Redis connection string. If null, uses in-memory cache.
+    /// Supports both StackExchange.Redis format (host:port,password=xxx,ssl=true)
+    /// and URI format (rediss://user:password@host:port).
     /// </summary>
     public string? RedisConnectionString { get; set; }
+
+    /// <summary>
+    /// Returns the connection string in StackExchange.Redis format,
+    /// converting from URI format (rediss://) if necessary.
+    /// </summary>
+    public string? GetStackExchangeConnectionString()
+    {
+        if (string.IsNullOrEmpty(RedisConnectionString))
+            return null;
+
+        // Already in StackExchange.Redis format
+        if (!RedisConnectionString.StartsWith("redis://", StringComparison.OrdinalIgnoreCase) &&
+            !RedisConnectionString.StartsWith("rediss://", StringComparison.OrdinalIgnoreCase))
+            return RedisConnectionString;
+
+        // Parse URI format: redis[s]://[user:password@]host:port
+        var useSsl = RedisConnectionString.StartsWith("rediss://", StringComparison.OrdinalIgnoreCase);
+        var uri = new Uri(RedisConnectionString);
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 6379;
+        var password = uri.UserInfo.Contains(':')
+            ? Uri.UnescapeDataString(uri.UserInfo.Split(':', 2)[1])
+            : null;
+
+        var parts = new List<string> { $"{host}:{port}" };
+        if (!string.IsNullOrEmpty(password))
+            parts.Add($"password={password}");
+        if (useSsl)
+            parts.Add("ssl=true");
+        parts.Add("abortConnect=false");
+
+        return string.Join(",", parts);
+    }
 
     /// <summary>
     /// Instance name prefix for Redis keys.

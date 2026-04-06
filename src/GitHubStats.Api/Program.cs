@@ -76,12 +76,13 @@ builder.Services.AddRateLimiter(options =>
 
 // Output Caching with Redis for distributed caching
 var cacheOptions = builder.Configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>() ?? new CacheOptions();
+var redisConnString = cacheOptions.GetStackExchangeConnectionString();
 
-if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+if (!string.IsNullOrEmpty(redisConnString))
 {
     builder.Services.AddStackExchangeRedisOutputCache(options =>
     {
-        options.Configuration = cacheOptions.RedisConnectionString;
+        options.Configuration = redisConnString;
         options.InstanceName = cacheOptions.InstanceName;
     });
 }
@@ -95,36 +96,39 @@ builder.Services.AddOutputCache(options =>
     // Stats card cache policy
     options.AddPolicy("StatsCard", policy =>
         policy.Expire(TimeSpan.FromMinutes(30))
+              .SetVaryByQuery("username", "theme", "show_icons", "hide_title", "hide_border", "hide_rank", "hide", "show", "include_all_commits", "commits_year", "title_color", "text_color", "icon_color", "bg_color", "border_color", "border_radius", "ring_color", "cache_seconds", "locale", "disable_animations", "rank_icon", "number_format", "text_bold", "exclude_repo", "line_height", "card_width")
               .Tag("stats"));
-
-    // Top languages card cache policy
-    options.AddPolicy("TopLangsCard", policy =>
-        policy.Expire(TimeSpan.FromMinutes(30))
-              .Tag("langs"));
-
-    // Repo pin card cache policy
-    options.AddPolicy("RepoCard", policy =>
-        policy.Expire(TimeSpan.FromMinutes(30))
-              .Tag("repo"));
-
-    // Gist card cache policy
-    options.AddPolicy("GistCard", policy =>
-        policy.Expire(TimeSpan.FromMinutes(30))
-              .Tag("gist"));
 
     // Streak card cache policy
     options.AddPolicy("StreakCard", policy =>
         policy.Expire(TimeSpan.FromMinutes(30))
+              .SetVaryByQuery("username", "theme", "hide_border", "border_radius", "title_color", "text_color", "icon_color", "bg_color", "border_color", "ring_color", "fire_color", "stroke_color", "curr_streak_num_color", "side_nums_color", "curr_streak_label_color", "side_labels_color", "dates_color", "date_format", "card_width", "card_height", "hide_total_contributions", "hide_current_streak", "hide_longest_streak", "starting_year", "cache_seconds", "locale", "disable_animations")
               .Tag("streak"));
+
+    // Top languages card cache policy
+    options.AddPolicy("TopLangsCard", policy =>
+        policy.Expire(TimeSpan.FromMinutes(30))
+              .SetVaryByQuery("username", "theme", "hide", "layout", "langs_count", "exclude_repo", "size_weight", "count_weight", "hide_progress", "hide_title", "hide_border", "card_width", "title_color", "text_color", "bg_color", "border_color", "border_radius", "cache_seconds", "locale", "disable_animations", "custom_title", "stats_format")
+              .Tag("top-langs"));
+
+    // Repo pin card cache policy (used by RepoEndpoint)
+    options.AddPolicy("RepoCard", policy =>
+        policy.Expire(TimeSpan.FromMinutes(30))
+              .Tag("repo"));
+
+    // Gist card cache policy (used by GistEndpoint)
+    options.AddPolicy("GistCard", policy =>
+        policy.Expire(TimeSpan.FromMinutes(30))
+              .Tag("gist"));
 });
 
 // Health Checks
 builder.Services.AddHealthChecks();
 
-if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+if (!string.IsNullOrEmpty(redisConnString))
 {
     builder.Services.AddHealthChecks()
-        .AddRedis(cacheOptions.RedisConnectionString, name: "redis");
+        .AddRedis(redisConnString, name: "redis");
 }
 
 // Response Compression
@@ -193,6 +197,8 @@ app.UseResponseCompression();
 app.UseCors("AllowAll");
 app.UseRateLimiter();
 app.UseOutputCache();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 // Exception handling middleware
 app.UseExceptionHandler();
@@ -207,14 +213,16 @@ app.MapRepoEndpoint();
 app.MapTopLangsEndpoint();
 app.MapGistEndpoint();
 app.MapStreakEndpoint();
+app.MapProgressEndpoint();
 
 // Status endpoints
-app.MapGet("/", () => Results.Ok(new { status = "ok", service = "GitHub Readme Stats" }))
-   .WithName("Root")
-   .WithTags("Status");
+// Root is now served by wwwroot/index.html via UseDefaultFiles + UseStaticFiles
 
 app.MapGet("/api/status/up", () => Results.Ok(new { status = "up", timestamp = DateTime.UtcNow }))
    .WithName("StatusUp")
    .WithTags("Status");
 
 app.Run();
+
+// Make Program accessible for integration tests
+public partial class Program { }

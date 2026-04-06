@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Readme Stats</title>
+    <style>
+        :root[data-theme="dark"] {
+            --color-canvas:        #0d1117;
+            --color-canvas-subtle: #161b22;
+            --color-border:        #30363d;
+            --color-border-muted:  #21262d;
+            --color-fg:            #e6edf3;
+            --color-fg-muted:      #8b949e;
+            --color-fg-subtle:     #6e7681;
+            --color-accent:        #58a6ff;
+            --color-accent-muted:  #1f3a5f;
+            --color-success:       #238636;
+            --color-success-hover: #2ea043;
+            --color-danger:        #f85149;
+            --color-btn-bg:        #21262d;
+            --color-btn-border:    #30363d;
+            --color-btn-hover:     #30363d;
+            --color-input-bg:      #0d1117;
+            --color-overlay:       rgba(0,0,0,0.4);
+            --color-code:          #79c0ff;
+            --shadow-card:         0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        :root[data-theme="light"] {
+            --color-canvas:        #ffffff;
+            --color-canvas-subtle: #f6f8fa;
+            --color-border:        #d0d7de;
+            --color-border-muted:  #d8dee4;
+            --color-fg:            #1f2328;
+            --color-fg-muted:      #656d76;
+            --color-fg-subtle:     #6e7781;
+            --color-accent:        #0969da;
+            --color-accent-muted:  #ddf4ff;
+            --color-success:       #1a7f37;
+            --color-success-hover: #218bff;
+            --color-danger:        #cf222e;
+            --color-btn-bg:        #f6f8fa;
+            --color-btn-border:    #d0d7de;
+            --color-btn-hover:     #eaeef2;
+            --color-input-bg:      #ffffff;
+            --color-overlay:       rgba(0,0,0,0.15);
+            --color-code:          #0550ae;
+            --shadow-card:         0 1px 3px rgba(31,35,40,0.08), 0 1px 2px rgba(31,35,40,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--color-canvas);
+            color: var(--color-fg);
+            min-height: 100vh;
+            transition: background 0.25s, color 0.25s;
+            line-height: 1.5;
+        }
+
+        /* ---- Layout ---- */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        /* ---- Header ---- */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 24px;
+        }
+
+        .theme-toggle {
+            background: var(--color-btn-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            color: var(--color-fg-muted);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--color-btn-hover);
+            color: var(--color-fg);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            color: var(--color-fg-muted);
+            font-size: 16px;
+        }
+
+        /* ---- Card (shared panel style) ---- */
+        .panel {
+            background: var(--color-canvas-subtle);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow-card);
+        }
+
+        /* ---- Controls ---- */
+        .controls {
+            margin-bottom: 24px;
+        }
+
+        .controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-fg-muted);
+        }
+
+        .control-group input,
+        .control-group select {
+            background: var(--color-input-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--color-fg);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            width: 100%;
+            height: 36px;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px var(--color-accent-muted);
+        }
+
+        /* ---- Tabs ---- */
+        .tabs {
+            display: inline-flex;
+            gap: 0;
+            margin-bottom: 24px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .tab {
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-fg-muted);
+            transition: all 0.15s;
+            border: none;
+            background: var(--color-canvas-subtle);
+            border-right: 1px solid var(--color-border);
+            white-space: nowrap;
+        }
+
+        .tab:last-child { border-right: none; }
+        .tab:hover { color: var(--color-fg); background: var(--color-btn-hover); }
+
+        .tab.active {
+            background: var(--color-accent);
+            color: #fff;
+        }
+
+        /* ---- Preview ---- */
+        .preview {
+            margin-bottom: 24px;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview img {
+            max-width: 100%;
+            height: auto;
+            transition: opacity 0.3s;
+        }
+
+        .preview img.loading { opacity: 0.35; }
+
+        .preview .msg {
+            color: var(--color-fg-muted);
+            font-size: 14px;
+        }
+
+        .preview .msg.error { color: var(--color-danger); }
+
+        /* ---- Progress Panel ---- */
+        .progress-panel {
+            display: none;
+            flex-direction: column;
+            gap: 0;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .progress-panel.show { display: flex; }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            font-size: 13px;
+            color: var(--color-fg-muted);
+            border-bottom: 1px solid var(--color-border-muted);
+            opacity: 0;
+            transform: translateY(6px);
+            animation: stepIn 0.25s ease-out forwards;
+        }
+
+        .progress-step:last-child { border-bottom: none; }
+
+        @keyframes stepIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Spinner for active step */
+        .step-icon .mini-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Checkmark for done */
+        .step-icon .check {
+            color: var(--color-success);
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* X for error */
+        .step-icon .fail {
+            color: var(--color-danger);
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .step-label { flex: 1; }
+
+        .step-label.done { color: var(--color-fg); }
+        .step-label.active { color: var(--color-accent); }
+        .step-label.error { color: var(--color-danger); }
+
+        .progress-elapsed {
+            text-align: center;
+            font-size: 11px;
+            color: var(--color-fg-subtle);
+            margin-top: 8px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ---- Status Bar (quick loads: tab/theme switch) ---- */
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 0;
+            background: var(--color-canvas-subtle);
+            border-top: 1px solid var(--color-border-muted);
+            border-radius: 0 0 12px 12px;
+            z-index: 3;
+            font-size: 13px;
+            color: var(--color-accent);
+            font-weight: 500;
+        }
+
+        .status-bar.show { display: flex; }
+
+        .status-bar .mini-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        /* ---- UI Lock ---- */
+        .ui-locked {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* ---- Copy Section ---- */
+        .copy-section {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .copy-section.show { display: flex; }
+
+        .copy-row {
+            display: grid;
+            grid-template-columns: 80px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            background: var(--color-canvas-subtle);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .copy-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-fg-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-code {
+            background: var(--color-input-bg);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+            font-size: 12px;
+            color: var(--color-code);
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .btn-copy {
+            background: var(--color-btn-bg);
+            border: 1px solid var(--color-btn-border);
+            border-radius: 6px;
+            padding: 5px 14px;
+            color: var(--color-fg);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-copy:hover { background: var(--color-btn-hover); }
+
+        .btn-copy.copied {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: #fff;
+        }
+
+        /* ---- Footer ---- */
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid var(--color-border-muted);
+            color: var(--color-fg-subtle);
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover { text-decoration: underline; }
+
+        /* ---- Scrollbar ---- */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 768px) {
+            .container { padding: 24px 16px; }
+            .header h1 { font-size: 24px; }
+            .controls-row {
+                grid-template-columns: 1fr;
+            }
+            .tabs { width: 100%; display: flex; }
+            .tab { flex: 1; text-align: center; padding: 8px 12px; }
+            .copy-row {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .copy-label { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .header p { font-size: 14px; }
+            .panel { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <button class="theme-toggle" id="themeToggle">
+                    <span id="themeIcon">&#9790;</span>
+                    <span id="themeLabel">Dark</span>
+                </button>
+            </div>
+            <h1>GitHub Readme Stats</h1>
+            <p>Generate beautiful SVG cards for your GitHub README</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel controls">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" value="encryptedtouhid" placeholder="GitHub username" spellcheck="false" />
+                </div>
+                <div class="control-group">
+                    <label for="theme">Theme</label>
+                    <select id="theme"></select>
+                </div>
+                <div class="control-group" id="layoutGroup" style="display:none;">
+                    <label for="layout">Layout</label>
+                    <select id="layout">
+                        <option value="normal">Normal</option>
+                        <option value="compact">Compact</option>
+                        <option value="donut">Donut</option>
+                        <option value="donut-vertical">Donut Vertical</option>
+                        <option value="pie">Pie</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="stats">Stats</button>
+            <button class="tab" data-tab="streak">Streak</button>
+            <button class="tab" data-tab="top-langs">Top Languages</button>
+        </div>
+
+        <!-- Preview -->
+        <div class="panel preview" id="preview">
+            <div class="progress-panel" id="progressPanel">
+                <div id="progressSteps"></div>
+                <div class="progress-elapsed" id="progressElapsed"></div>
+            </div>
+            <div class="status-bar" id="statusBar">
+                <div class="mini-spinner"></div>
+                <span id="statusText">Loading...</span>
+            </div>
+            <span class="msg" id="previewMsg">Loading...</span>
+        </div>
+
+        <!-- Copy Links -->
+        <div class="copy-section" id="copySection">
+            <div class="copy-row">
+                <span class="copy-label">Markdown</span>
+                <code class="copy-code" id="mdCode"></code>
+                <button class="btn-copy" data-target="mdCode">Copy</button>
+            </div>
+            <div class="copy-row">
+                <span class="copy-label">HTML</span>
+                <code class="copy-code" id="htmlCode"></code>
+                <button class="btn-copy" data-target="htmlCode">Copy</button>
+            </div>
+            <div class="copy-row">
+                <span class="copy-label">URL</span>
+                <code class="copy-code" id="urlCode"></code>
+                <button class="btn-copy" data-target="urlCode">Copy</button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Developed by <a href="https://tuhidulhossain.com" target="_blank">Khaled Md Tuhidul Hossain</a> &mdash; Built with .NET 9 &mdash; <a href="https://github.com/encryptedtouhid/github-readme-stats" target="_blank">View on GitHub</a>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+    $(function () {
+        var BASE = window.location.origin;
+        var currentTab = 'stats';
+        var debounceTimer = null;
+        var currentImg = null;
+        var activeSSE = null;
+        var elapsedInterval = null;
+        // Track which user has already been fetched (data cached on server)
+        var fetchedUsers = {};
+
+        // ---- Themes ----
+        var themes = [
+            'default','dark','radical','merko','gruvbox','gruvbox_light','tokyonight',
+            'onedark','cobalt','synthwave','highcontrast','dracula','prussian','monokai',
+            'vue','vue-dark','shades-of-purple','nightowl','buefy','blue-green','algolia',
+            'great-gatsby','darcula','bear','solarized-dark','solarized-light',
+            'chartreuse-dark','nord','gotham','material-palenight','graywhite',
+            'vision-friendly-dark','ayu-mirage','midnight-purple','calm','flag-india',
+            'omni','react','jolly','maroongold','yeblu','blueberry','slateorange',
+            'kacho_ga','outrun','ocean_dark','city_lights','github_light',
+            'github_light_default','github_light_high_contrast','github_dark',
+            'github_dark_default','github_dark_high_contrast','github_dark_dimmed',
+            'github_dark_colorblind','github_light_colorblind','github_dark_tritanopia',
+            'github_light_tritanopia','discord_old_blurple','aura_dark','panda',
+            'noctis_minimus','cobalt2','swift','aura','apprentice','moltack',
+            'codeSTACKr','rose_pine','catppuccin_latte','catppuccin_mocha','date_night',
+            'one_dark_pro','rose','holi','neon','blue_navy','calm_pink',
+            'ambient_gradient','sunset','sunset_dark','ocean','ocean_deep','forest',
+            'forest_dark','purple_wave','purple_galaxy','cyber','fire','mint','coral',
+            'aurora','golden','golden_dark','rose_gold','electric','lavender','arctic',
+            'khaled_theme'
+        ];
+
+        var $themeSelect = $('#theme');
+        $.each(themes, function (_, t) {
+            $themeSelect.append('<option value="' + t + '">' + t.replace(/_/g, ' ') + '</option>');
+        });
+        $themeSelect.val('tokyonight');
+
+        // ---- Dark / Light toggle ----
+        function applyTheme(mode) {
+            $('html').attr('data-theme', mode);
+            $('#themeIcon').html(mode === 'dark' ? '&#9790;' : '&#9728;');
+            $('#themeLabel').text(mode === 'dark' ? 'Dark' : 'Light');
+            localStorage.setItem('ui-theme', mode);
+        }
+
+        var savedTheme = localStorage.getItem('ui-theme') || 'dark';
+        applyTheme(savedTheme);
+
+        $('#themeToggle').on('click', function () {
+            var next = $('html').attr('data-theme') === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+        });
+
+        // ---- Tabs ----
+        $('.tab').on('click', function () {
+            if ($(this).hasClass('active')) return;
+            $('.tab').removeClass('active');
+            $(this).addClass('active');
+            currentTab = $(this).data('tab');
+            $('#layoutGroup').toggle(currentTab === 'top-langs');
+            generate();
+        });
+
+        // ---- Instant reactivity ----
+        $themeSelect.on('change', function () { generate(); });
+        $('#layout').on('change', function () { generate(); });
+
+        // Debounce username typing
+        $('#username').on('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(generate, 600);
+        });
+
+        $('#username').on('keydown', function (e) {
+            if (e.key === 'Enter') {
+                clearTimeout(debounceTimer);
+                generate();
+            }
+        });
+
+        // ---- Build URL ----
+        function buildUrl() {
+            var user = $.trim($('#username').val());
+            if (!user) return null;
+
+            var parts = ['username=' + encodeURIComponent(user)];
+            var theme = $themeSelect.val();
+
+            if (theme && theme !== 'default') {
+                parts.push('theme=' + encodeURIComponent(theme));
+            }
+            if (currentTab === 'stats') {
+                parts.push('show_icons=true');
+            }
+            if (currentTab === 'top-langs') {
+                var layout = $('#layout').val();
+                if (layout !== 'normal') parts.push('layout=' + encodeURIComponent(layout));
+            }
+
+            return '/api/' + currentTab + '?' + parts.join('&');
+        }
+
+        // ---- UI Lock: prevent all interaction while loading ----
+        function lockUI() {
+            $('.controls, .tabs').addClass('ui-locked');
+        }
+
+        function unlockUI() {
+            $('.controls, .tabs').removeClass('ui-locked');
+        }
+
+        // ---- Status bar for quick loads (tab/theme switch) ----
+        var tabLabels = { 'stats': 'Stats', 'streak': 'Streak', 'top-langs': 'Top Languages' };
+
+        function showStatusBar(message) {
+            $('#statusText').text(message);
+            $('#statusBar').addClass('show');
+            lockUI();
+        }
+
+        function hideStatusBar() {
+            $('#statusBar').removeClass('show');
+            unlockUI();
+        }
+
+        // ---- Progress UI helpers (first-time SSE fetch) ----
+        function showProgress() {
+            $('#progressPanel').addClass('show');
+            $('#progressSteps').empty();
+            $('#progressElapsed').text('');
+            $('#previewMsg').hide();
+            if (currentImg) $(currentImg).addClass('loading');
+            lockUI();
+        }
+
+        function hideProgress() {
+            $('#progressPanel').removeClass('show');
+            clearInterval(elapsedInterval);
+            unlockUI();
+        }
+
+        function addOrUpdateStep(id, status, message) {
+            var $existing = $('#step-' + id);
+            var iconHtml;
+            var labelClass;
+
+            if (status === 'active') {
+                iconHtml = '<div class="mini-spinner"></div>';
+                labelClass = 'active';
+            } else if (status === 'done') {
+                iconHtml = '<span class="check">&#10003;</span>';
+                labelClass = 'done';
+            } else {
+                iconHtml = '<span class="fail">&#10007;</span>';
+                labelClass = 'error';
+            }
+
+            if ($existing.length) {
+                $existing.find('.step-icon').html(iconHtml);
+                $existing.find('.step-label').text(message).attr('class', 'step-label ' + labelClass);
+            } else {
+                var step = $(
+                    '<div class="progress-step" id="step-' + id + '">' +
+                        '<div class="step-icon">' + iconHtml + '</div>' +
+                        '<span class="step-label ' + labelClass + '">' + message + '</span>' +
+                    '</div>'
+                );
+                $('#progressSteps').append(step);
+            }
+        }
+
+        function startElapsedTimer() {
+            var start = Date.now();
+            clearInterval(elapsedInterval);
+            elapsedInterval = setInterval(function () {
+                var sec = ((Date.now() - start) / 1000).toFixed(1);
+                $('#progressElapsed').text(sec + 's elapsed');
+            }, 100);
+        }
+
+        // ---- Load image from cache (data already fetched) ----
+        function loadImage(fullUrl, statusMessage) {
+            var $preview = $('#preview');
+            var $copy = $('#copySection');
+
+            // Show status bar with context message
+            if (statusMessage) {
+                showStatusBar(statusMessage);
+            }
+
+            // Dim existing image
+            if (currentImg) $(currentImg).addClass('loading');
+
+            var img = new Image();
+            img.onload = function () {
+                hideProgress();
+                hideStatusBar();
+                if (currentImg) $(currentImg).remove();
+                currentImg = img;
+                $preview.append(img);
+                updateCopyLinks(fullUrl);
+                $copy.addClass('show');
+            };
+            img.onerror = function () {
+                hideProgress();
+                hideStatusBar();
+                if (currentImg) $(currentImg).removeClass('loading');
+                if (!currentImg) {
+                    $('#previewMsg').text('Failed to load card').addClass('error').show();
+                }
+                updateCopyLinks(fullUrl);
+                $copy.addClass('show');
+            };
+            img.src = fullUrl;
+            img.alt = currentTab + ' card for ' + $.trim($('#username').val());
+        }
+
+        // ---- Track last username to detect changes ----
+        var lastUser = '';
+
+        // ---- Generate (main entry point) ----
+        function generate() {
+            var user = $.trim($('#username').val());
+            var $preview = $('#preview');
+            var $msg = $('#previewMsg');
+            var $copy = $('#copySection');
+
+            // Cancel any in-flight SSE
+            if (activeSSE) { activeSSE.close(); activeSSE = null; }
+            clearInterval(elapsedInterval);
+            hideStatusBar();
+
+            if (!user) {
+                hideProgress();
+                if (currentImg) { $(currentImg).remove(); currentImg = null; }
+                $msg.text('Enter a GitHub username').removeClass('error').show();
+                $copy.removeClass('show');
+                lastUser = '';
+                return;
+            }
+
+            var url = buildUrl();
+            if (!url) return;
+            var fullUrl = BASE + url;
+
+            // Username changed — remove old card immediately
+            if (user !== lastUser) {
+                if (currentImg) { $(currentImg).remove(); currentImg = null; }
+                $copy.removeClass('show');
+                lastUser = user;
+            }
+
+            // If this user's data is already cached, load image with status bar
+            if (fetchedUsers[user]) {
+                $msg.hide();
+                hideProgress();
+                loadImage(fullUrl, 'Rendering ' + tabLabels[currentTab] + ' card...');
+                return;
+            }
+
+            // First time for this user — show progress via SSE
+            showProgress();
+            startElapsedTimer();
+
+            var sseUrl = '/api/progress?username=' + encodeURIComponent(user);
+            var es = new EventSource(sseUrl);
+            activeSSE = es;
+
+            es.addEventListener('step', function (e) {
+                var d = JSON.parse(e.data);
+                addOrUpdateStep(d.step, d.status, d.message);
+            });
+
+            es.addEventListener('complete', function (e) {
+                es.close();
+                activeSSE = null;
+                clearInterval(elapsedInterval);
+
+                // Mark user as fetched so subsequent theme/tab switches are instant
+                fetchedUsers[user] = true;
+
+                // Hide progress, show status bar, load image immediately
+                hideProgress();
+                loadImage(fullUrl, 'Rendering ' + tabLabels[currentTab] + ' card...');
+            });
+
+            es.onerror = function () {
+                es.close();
+                activeSSE = null;
+                clearInterval(elapsedInterval);
+                addOrUpdateStep('error', 'error', 'Connection lost — retrying...');
+
+                // Fallback: try loading the image directly
+                setTimeout(function () {
+                    hideProgress();
+                    loadImage(fullUrl);
+                }, 1000);
+            };
+        }
+
+        // ---- Copy links ----
+        function updateCopyLinks(url) {
+            var label = currentTab === 'top-langs' ? 'Top Languages' :
+                        currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+
+            $('#mdCode').text('![' + label + '](' + url + ')');
+            $('#htmlCode').text('<img src="' + url + '" alt="' + label + '" />');
+            $('#urlCode').text(url);
+        }
+
+        $(document).on('click', '.btn-copy', function () {
+            var $btn = $(this);
+            var text = $('#' + $btn.data('target')).text();
+
+            navigator.clipboard.writeText(text).then(function () {
+                $btn.addClass('copied').text('Copied!');
+                setTimeout(function () { $btn.removeClass('copied').text('Copy'); }, 1500);
+            });
+        });
+
+        // ---- Init ----
+        generate();
+    });
+    </script>
+</body>
+</html>

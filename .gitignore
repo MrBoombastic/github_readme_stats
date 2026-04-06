@@ -11,11 +11,13 @@
 /src/GitHubStats.Infrastructure/bin
 /src/GitHubStats.Domain/bin
 /src/GitHubStats.Domain/obj
+/src/GitHubStats.Tests/bin
+/src/GitHubStats.Tests/obj
 /src/.idea
 /src/.vs
 src/GitHubStats.Api/Properties/PublishProfiles/FolderProfile.pubxml.user
 src/GitHubStats.Api/GitHubStats.Api.csproj.user
 src/GitHubStats.Api/Properties/PublishProfiles/FolderProfile.pubxml
 /.claude
-appsettings.json
+appsettings.Development.json
 .idea

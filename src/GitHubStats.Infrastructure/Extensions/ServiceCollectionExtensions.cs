@@ -33,34 +33,38 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IGitHubClient, GitHubClient>("GitHub", client =>
         {
             client.DefaultRequestHeaders.Add("User-Agent", "GitHubStats");
-            client.Timeout = TimeSpan.FromSeconds(30);
+            client.Timeout = TimeSpan.FromSeconds(10);
         })
         .AddStandardResilienceHandler(options =>
         {
-            // Retry policy with exponential backoff
-            options.Retry.MaxRetryAttempts = 3;
-            options.Retry.Delay = TimeSpan.FromMilliseconds(500);
+            // Retry policy with fast exponential backoff
+            options.Retry.MaxRetryAttempts = 2;
+            options.Retry.Delay = TimeSpan.FromMilliseconds(200);
             options.Retry.BackoffType = DelayBackoffType.Exponential;
 
             // Circuit breaker
             options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
             options.CircuitBreaker.FailureRatio = 0.5;
             options.CircuitBreaker.MinimumThroughput = 10;
-            options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(30);
+            options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
 
             // Total request timeout
-            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(60);
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(15);
+
+            // Per-attempt timeout
+            options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(8);
         });
 
         // Caching
         var cacheOptions = configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>() ?? new CacheOptions();
 
-        if (!string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+        var redisConnString = cacheOptions.GetStackExchangeConnectionString();
+        if (!string.IsNullOrEmpty(redisConnString))
         {
             // Use Redis for distributed caching (high scalability)
             services.AddStackExchangeRedisCache(options =>
             {
-                options.Configuration = cacheOptions.RedisConnectionString;
+                options.Configuration = redisConnString;
                 options.InstanceName = cacheOptions.InstanceName;
             });
         }
@@ -71,6 +75,12 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddSingleton<ICacheService, RedisCacheService>();
+
+        // User tracker for recording which users have been requested
+        services.AddSingleton<UserTracker>();
+
+        // Background job: refresh cache for all tracked users at 9AM and 9PM SGT
+        services.AddHostedService<CacheRefreshJob>();
 
         return services;
     }

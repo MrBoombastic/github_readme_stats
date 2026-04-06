@@ -79,7 +79,7 @@ public sealed class StatsCardService
             cancellationToken);
     }
 
-    private static string GenerateCacheKey(
+    public static string GenerateCacheKey(
         string username,
         bool includeAllCommits,
         IReadOnlyList<string>? excludeRepos,

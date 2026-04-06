@@ -69,7 +69,7 @@ public sealed class TopLanguagesCardService
             cancellationToken);
     }
 
-    private static string GenerateCacheKey(
+    public static string GenerateCacheKey(
         string username,
         IReadOnlyList<string>? excludeRepos,
         double sizeWeight,
