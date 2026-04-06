@@ -718,7 +718,7 @@ public sealed class GitHubClient : IGitHubClient
     {
         var token = _tokenRotator.GetNextToken();
         var request = new HttpRequestMessage(HttpMethod.Get,
-            $"{_options.RestApiEndpoint}/search/commits?q=author:{username}");
+            $"{_options.RestApiEndpoint}/search/commits?q=author:{Uri.EscapeDataString(username)}");
         request.Headers.Add("Authorization", $"token {token}");
         request.Headers.Add("Accept", "application/vnd.github.cloak-preview");
         request.Headers.Add("User-Agent", "GitHubStats");
