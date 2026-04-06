@@ -115,25 +115,96 @@ These parameters work across all card types:
 
 ### Stats Card Parameters
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `show_icons` | Show icons next to stats | `false` |
-| `hide_title` | Hide the card title | `false` |
-| `hide_rank` | Hide the rank circle | `false` |
-| `include_all_commits` | Count all commits (not just current year) | `false` |
-| `commits_year` | Show commits for a specific year | current year |
-| `line_height` | Line height between stats | auto |
-| `card_width` | Card width in pixels | auto |
-| `hide` | Comma-separated stats to hide (e.g. `stars,commits`) | - |
-| `show` | Show additional stats: `prs_merged`, `discussions_started`, `discussions_answered` | - |
-| `ring_color` | Rank ring color | theme default |
-| `text_bold` | Bold text for stats | `true` |
-| `number_format` | Number format: `short` or `long` | `short` |
-| `rank_icon` | Rank icon style: `default`, `github`, `percentile` | `default` |
-| `exclude_repo` | Comma-separated repos to exclude | - |
-| `disable_animations` | Disable all animations | `false` |
+| Parameter                  | Description                               | Default   |
+|----------------------------|-------------------------------------------|-----------|
+| `username`                 | GitHub username (required)                | -         |
+| `theme`                    | Card theme                                | `default` |
+| `hide_border`              | Hide card border                          | `false`   |
+| `border_radius`            | Card corner radius                        | `4.5`     |
+| `card_width`               | Manual card width override                | `495`     |
+| `card_height`              | Manual card height override               | `150`     |
+| `hide_total_contributions` | Hide total contributions section          | `false`   |
+| `hide_current_streak`      | Hide current streak section               | `false`   |
+| `hide_longest_streak`      | Hide longest streak section               | `false`   |
+| `starting_year`            | Start calculating streak from this year   | `2005`    |
+| `fire_color`               | Color of the fire icon (HEX)              | `ff6b6b`  |
+| `curr_streak_num_color`    | Color of the current streak number        | -         |
+| `side_nums_color`          | Color of the side numbers (total/longest) | -         |
+| `curr_streak_label_color`  | Color of the "Current Streak" label       | -         |
+| `side_labels_color`        | Color of the side labels                  | -         |
+| `dates_color`              | Color of the date range text              | -         |
+| `cache_seconds`            | Custom cache TTL in seconds               | `1800`    |
+| `disable_animations`       | Disable animations                        | `false`   |
 
-### Streak Card Parameters
+### User Stats Card Options
+
+| Parameter             | Description                                                                                                          | Default   |
+|-----------------------|----------------------------------------------------------------------------------------------------------------------|-----------|
+| `username`            | GitHub username (required)                                                                                           | -         |
+| `hide`                | Comma-separated list of stats to hide (`stars`, `commits`, `prs`, `issues`, `contribs`)                              | -         |
+| `show`                | Comma-separated list of extra stats to show (`reviews`, `prs_merged`, `discussions_started`, `discussions_answered`) | -         |
+| `hide_rank`           | Hide the ranking circle                                                                                              | `false`   |
+| `show_icons`          | Show icons next to stat labels                                                                                       | `false`   |
+| `include_all_commits` | Count total commits instead of just last year (Used for rank calculation)                                            | `false`   |
+| `commits_year`        | Count commits for a specific year                                                                                    | -         |
+| `number_format`       | Format for numbers (`short`, `long`)                                                                                 | `short`   |
+| `text_bold`           | Whether to use bold text                                                                                             | `true`    |
+| `exclude_repo`        | Comma-separated list of repositories to exclude                                                                      | -         |
+| `line_height`         | Space between rows                                                                                                   | `25`      |
+| `card_width`          | Manual card width override                                                                                           | `450`     |
+| `theme`               | Card theme                                                                                                           | `default` |
+| `hide_border`         | Hide card border                                                                                                     | `false`   |
+| `border_radius`       | Card corner radius                                                                                                   | `4.5`     |
+| `cache_seconds`       | Custom cache TTL in seconds                                                                                          | `1800`    |
+| `disable_animations`  | Disable animations                                                                                                   | `false`   |
+
+### Top Languages Card Options
+
+| Parameter            | Description                                                         | Default       |
+|----------------------|---------------------------------------------------------------------|---------------|
+| `username`           | GitHub username (required)                                          | -             |
+| `hide`               | Comma-separated list of languages to hide                           | -             |
+| `layout`             | Card layout (`normal`, `compact`, `donut`, `donut-vertical`, `pie`) | `normal`      |
+| `langs_count`        | Number of languages to show (max 20)                                | `5`           |
+| `exclude_repo`       | Comma-separated list of repositories to exclude                     | -             |
+| `size_weight`        | Weight for code size in ranking                                     | `1`           |
+| `count_weight`       | Weight for repo count in ranking                                    | `0`           |
+| `include_forks`      | Include languages from forked repositories                          | `false`       |
+| `hide_progress`      | Hide progress bar/stats in `compact` layout                         | `false`       |
+| `stats_format`       | Format for stats (`percentages`, `bytes`)                           | `percentages` |
+| `hide_title`         | Hide the card title                                                 | `false`       |
+| `custom_title`       | Custom card title                                                   | -             |
+| `hide_border`        | Hide the card border                                                | `false`       |
+| `border_radius`      | Card corner radius                                                  | `4.5`         |
+| `card_width`         | Manual card width override                                          | -             |
+| `card_height`        | Manual card height override                                         | -             |
+| `theme`              | Card theme                                                          | `default`     |
+| `cache_seconds`      | Custom cache TTL in seconds                                         | `1800`        |
+| `disable_animations` | Disable animations                                                  | `false`       |
+
+### Repository Card Options
+
+| Parameter                | Description                                     | Default            |
+|--------------------------|-------------------------------------------------|--------------------|
+| `username`               | GitHub username (required)                      | -                  |
+| `repo`                   | Repository name (required)                      | -                  |
+| `theme`                  | Card theme                                      | `default_repocard` |
+| `show_owner`             | Show the repository owner's username            | `false`            |
+| `description_lines_count`| Maximum number of lines for the description     | `3`                |
+| `hide_border`            | Hide the card border                            | `false`            |
+| `border_radius`          | Card corner radius                              | `4.5`              |
+| `cache_seconds`          | Custom cache TTL in seconds                     | `1800`             |
+
+### Gist Card Options
+
+| Parameter       | Description                          | Default            |
+|-----------------|--------------------------------------|--------------------|
+| `id`            | Gist ID (required)                   | -                  |
+| `theme`         | Card theme                           | `default_repocard` |
+| `show_owner`    | Show the gist owner's username       | `false`            |
+| `hide_border`   | Hide the card border                 | `false`            |
+| `border_radius` | Card corner radius                   | `4.5`              |
+| `cache_seconds` | Custom cache TTL in seconds          | `1800`             |
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -215,89 +286,89 @@ Use the `theme` parameter to customize your card appearance:
 <details>
 <summary><strong>GitHub Themes</strong></summary>
 
-| Theme | Description |
-|-------|-------------|
-| `github_light` | GitHub light mode |
-| `github_light_default` | GitHub light with gray titles |
-| `github_light_high_contrast` | GitHub light high contrast |
-| `github_light_colorblind` | GitHub light colorblind-friendly |
-| `github_light_tritanopia` | GitHub light tritanopia-friendly |
-| `github_dark` | GitHub dark mode |
-| `github_dark_default` | GitHub dark with white titles |
-| `github_dark_high_contrast` | GitHub dark high contrast |
-| `github_dark_dimmed` | GitHub dimmed dark |
-| `github_dark_colorblind` | GitHub dark colorblind-friendly |
-| `github_dark_tritanopia` | GitHub dark tritanopia-friendly |
+| Theme                        | Description                      |
+|------------------------------|----------------------------------|
+| `github_light`               | GitHub light mode                |
+| `github_light_default`       | GitHub light with gray titles    |
+| `github_light_high_contrast` | GitHub light high contrast       |
+| `github_light_colorblind`    | GitHub light colorblind-friendly |
+| `github_light_tritanopia`    | GitHub light tritanopia-friendly |
+| `github_dark`                | GitHub dark mode                 |
+| `github_dark_default`        | GitHub dark with white titles    |
+| `github_dark_high_contrast`  | GitHub dark high contrast        |
+| `github_dark_dimmed`         | GitHub dimmed dark               |
+| `github_dark_colorblind`     | GitHub dark colorblind-friendly  |
+| `github_dark_tritanopia`     | GitHub dark tritanopia-friendly  |
 
 </details>
 
 <details>
 <summary><strong>Popular Themes</strong></summary>
 
-| Theme | Description |
-|-------|-------------|
-| `default` | Light theme with blue accent |
-| `dark` | Pure dark theme |
-| `radical` | Pink/purple gradient |
-| `tokyonight` | Tokyo Night color scheme |
-| `dracula` | Dracula purple theme |
-| `nord` | Nord arctic colors |
-| `gruvbox` | Retro groove colors |
-| `onedark` | Atom One Dark theme |
-| `catppuccin_mocha` | Catppuccin Mocha |
-| `catppuccin_latte` | Catppuccin Latte |
-| `rose_pine` | Rose Pine theme |
+| Theme              | Description                  |
+|--------------------|------------------------------|
+| `default`          | Light theme with blue accent |
+| `dark`             | Pure dark theme              |
+| `radical`          | Pink/purple gradient         |
+| `tokyonight`       | Tokyo Night color scheme     |
+| `dracula`          | Dracula purple theme         |
+| `nord`             | Nord arctic colors           |
+| `gruvbox`          | Retro groove colors          |
+| `onedark`          | Atom One Dark theme          |
+| `catppuccin_mocha` | Catppuccin Mocha             |
+| `catppuccin_latte` | Catppuccin Latte             |
+| `rose_pine`        | Rose Pine theme              |
 
 </details>
 
 <details>
 <summary><strong>Editor Themes</strong></summary>
 
-| Theme | Description |
-|-------|-------------|
-| `monokai` | Monokai editor theme |
-| `cobalt` | Cobalt blue theme |
-| `cobalt2` | Cobalt2 theme |
-| `nightowl` | Night Owl editor theme |
-| `material-palenight` | Material Palenight |
-| `darcula` | JetBrains Darcula |
-| `one_dark_pro` | One Dark Pro |
-| `ayu-mirage` | Ayu Mirage theme |
-| `noctis_minimus` | Noctis Minimus |
-| `synthwave` | 80s synthwave style |
+| Theme                | Description            |
+|----------------------|------------------------|
+| `monokai`            | Monokai editor theme   |
+| `cobalt`             | Cobalt blue theme      |
+| `cobalt2`            | Cobalt2 theme          |
+| `nightowl`           | Night Owl editor theme |
+| `material-palenight` | Material Palenight     |
+| `darcula`            | JetBrains Darcula      |
+| `one_dark_pro`       | One Dark Pro           |
+| `ayu-mirage`         | Ayu Mirage theme       |
+| `noctis_minimus`     | Noctis Minimus         |
+| `synthwave`          | 80s synthwave style    |
 
 </details>
 
 <details>
 <summary><strong>Framework & Brand Themes</strong></summary>
 
-| Theme | Description |
-|-------|-------------|
-| `vue` | Vue.js green theme |
-| `vue-dark` | Dark Vue.js theme |
-| `react` | React brand colors |
-| `swift` | Swift orange theme |
-| `algolia` | Algolia brand colors |
-| `discord_old_blurple` | Discord old blurple |
-| `buefy` | Buefy framework colors |
+| Theme                 | Description            |
+|-----------------------|------------------------|
+| `vue`                 | Vue.js green theme     |
+| `vue-dark`            | Dark Vue.js theme      |
+| `react`               | React brand colors     |
+| `swift`               | Swift orange theme     |
+| `algolia`             | Algolia brand colors   |
+| `discord_old_blurple` | Discord old blurple    |
+| `buefy`               | Buefy framework colors |
 
 </details>
 
 <details>
 <summary><strong>Color Palette Themes</strong></summary>
 
-| Theme | Description |
-|-------|-------------|
-| `solarized-dark` | Solarized dark palette |
-| `solarized-light` | Solarized light palette |
-| `gruvbox_light` | Light gruvbox variant |
-| `shades-of-purple` | Purple shades theme |
-| `midnight-purple` | Midnight purple theme |
-| `blue-green` | Blue-green gradient |
-| `blue_navy` | Navy blue theme |
-| `calm` | Calm pastel colors |
-| `calm_pink` | Calm pink pastel |
-| `rose` | Rose pink theme |
+| Theme              | Description             |
+|--------------------|-------------------------|
+| `solarized-dark`   | Solarized dark palette  |
+| `solarized-light`  | Solarized light palette |
+| `gruvbox_light`    | Light gruvbox variant   |
+| `shades-of-purple` | Purple shades theme     |
+| `midnight-purple`  | Midnight purple theme   |
+| `blue-green`       | Blue-green gradient     |
+| `blue_navy`        | Navy blue theme         |
+| `calm`             | Calm pastel colors      |
+| `calm_pink`        | Calm pink pastel        |
+| `rose`             | Rose pink theme         |
 
 </details>
 
@@ -306,66 +377,66 @@ Use the `theme` parameter to customize your card appearance:
 
 Modern themes designed specifically for the streak card:
 
-| Theme | Description |
-|-------|-------------|
-| `sunset` | Warm sunset gradient |
-| `sunset_dark` | Dark sunset variant |
-| `ocean` | Ocean blue theme |
-| `ocean_deep` | Deep ocean theme |
-| `forest` | Forest green theme |
-| `forest_dark` | Dark forest variant |
-| `purple_wave` | Purple wave gradient |
-| `purple_galaxy` | Galaxy purple theme |
-| `cyber` | Cyberpunk neon |
-| `fire` | Fire red/orange theme |
-| `mint` | Fresh mint green |
-| `coral` | Coral pink theme |
-| `aurora` | Purple/teal aurora |
-| `golden` | Golden luxury theme |
-| `golden_dark` | Dark gold variant |
-| `rose_gold` | Rose gold elegant |
-| `electric` | Electric blue theme |
-| `lavender` | Soft lavender |
-| `arctic` | Arctic ice blue |
+| Theme           | Description           |
+|-----------------|-----------------------|
+| `sunset`        | Warm sunset gradient  |
+| `sunset_dark`   | Dark sunset variant   |
+| `ocean`         | Ocean blue theme      |
+| `ocean_deep`    | Deep ocean theme      |
+| `forest`        | Forest green theme    |
+| `forest_dark`   | Dark forest variant   |
+| `purple_wave`   | Purple wave gradient  |
+| `purple_galaxy` | Galaxy purple theme   |
+| `cyber`         | Cyberpunk neon        |
+| `fire`          | Fire red/orange theme |
+| `mint`          | Fresh mint green      |
+| `coral`         | Coral pink theme      |
+| `aurora`        | Purple/teal aurora    |
+| `golden`        | Golden luxury theme   |
+| `golden_dark`   | Dark gold variant     |
+| `rose_gold`     | Rose gold elegant     |
+| `electric`      | Electric blue theme   |
+| `lavender`      | Soft lavender         |
+| `arctic`        | Arctic ice blue       |
 
 </details>
 
 <details>
 <summary><strong>All Other Themes</strong></summary>
 
-| Theme | Description |
-|-------|-------------|
-| `default_repocard` | Light theme for repo cards |
-| `merko` | Green forest theme |
-| `highcontrast` | High contrast dark |
-| `prussian` | Prussian blue theme |
-| `great-gatsby` | Great Gatsby gold |
-| `bear` | Bear app theme |
-| `chartreuse-dark` | Chartreuse dark theme |
-| `gotham` | Gotham dark theme |
-| `graywhite` | Gray and white minimal |
-| `vision-friendly-dark` | Accessible dark theme |
-| `flag-india` | India flag colors |
-| `omni` | Omni dark theme |
-| `jolly` | Jolly bright theme |
-| `maroongold` | Maroon and gold |
-| `yeblu` | Yellow and blue |
-| `blueberry` | Blueberry colors |
-| `slateorange` | Slate and orange |
-| `kacho_ga` | Japanese aesthetic |
-| `outrun` | Outrun retro style |
-| `ocean_dark` | Deep ocean dark |
-| `city_lights` | City lights theme |
-| `aura_dark` | Aura dark theme |
-| `panda` | Panda syntax theme |
-| `aura` | Aura purple theme |
-| `apprentice` | Apprentice vim theme |
-| `moltack` | Moltack colors |
-| `codeSTACKr` | codeSTACKr theme |
-| `date_night` | Date night romantic |
-| `holi` | Holi festival colors |
-| `neon` | Cyan/magenta cyberpunk |
-| `ambient_gradient` | Ambient gradient |
+| Theme                  | Description                |
+|------------------------|----------------------------|
+| `default_repocard`     | Light theme for repo cards |
+| `merko`                | Green forest theme         |
+| `highcontrast`         | High contrast dark         |
+| `prussian`             | Prussian blue theme        |
+| `great-gatsby`         | Great Gatsby gold          |
+| `bear`                 | Bear app theme             |
+| `chartreuse-dark`      | Chartreuse dark theme      |
+| `gotham`               | Gotham dark theme          |
+| `graywhite`            | Gray and white minimal     |
+| `vision-friendly-dark` | Accessible dark theme      |
+| `flag-india`           | India flag colors          |
+| `omni`                 | Omni dark theme            |
+| `jolly`                | Jolly bright theme         |
+| `maroongold`           | Maroon and gold            |
+| `yeblu`                | Yellow and blue            |
+| `blueberry`            | Blueberry colors           |
+| `slateorange`          | Slate and orange           |
+| `kacho_ga`             | Japanese aesthetic         |
+| `outrun`               | Outrun retro style         |
+| `ocean_dark`           | Deep ocean dark            |
+| `city_lights`          | City lights theme          |
+| `aura_dark`            | Aura dark theme            |
+| `panda`                | Panda syntax theme         |
+| `aura`                 | Aura purple theme          |
+| `apprentice`           | Apprentice vim theme       |
+| `moltack`              | Moltack colors             |
+| `codeSTACKr`           | codeSTACKr theme           |
+| `date_night`           | Date night romantic        |
+| `holi`                 | Holi festival colors       |
+| `neon`                 | Cyan/magenta cyberpunk     |
+| `ambient_gradient`     | Ambient gradient           |
 
 </details>
 

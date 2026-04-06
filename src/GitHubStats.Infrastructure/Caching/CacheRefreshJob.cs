@@ -141,7 +141,7 @@ public sealed class CacheRefreshJob : BackgroundService
         var langsTask = Task.Run(async () =>
         {
             var data = await client.GetTopLanguagesAsync(username, cancellationToken: ct);
-            var key = Application.Services.TopLanguagesCardService.GenerateCacheKey(username, null, 1, 0);
+            var key = Application.Services.TopLanguagesCardService.GenerateCacheKey(username, null, 1, 0, false);
             await cache.SetAsync(key, data, TimeSpan.FromDays(6), ct);
         }, ct);
 

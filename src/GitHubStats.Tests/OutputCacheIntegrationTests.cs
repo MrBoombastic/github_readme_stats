@@ -65,7 +65,7 @@ public class OutputCacheIntegrationTests : IClassFixture<OutputCacheIntegrationT
     {
         var callCount = 0;
         _gitHubClient.Setup(c => c.GetTopLanguagesAsync(
-                "langscacheuser", null, 1, 0,
+                "langscacheuser", null, 1, 0, false,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {

@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Globalization;
 using System.Text;
 using System.Web;
 
@@ -39,7 +40,7 @@ public sealed class SvgBuilder : IDisposable
 
     public SvgBuilder Append(double value)
     {
-        _sb.Append(value.ToString("0.##"));
+        _sb.Append(value.ToString("0.##", CultureInfo.InvariantCulture));
         return this;
     }
 
@@ -98,17 +99,17 @@ public sealed class SvgBuilder : IDisposable
         string? fill = null, string? stroke = null, double? rx = null, double? ry = null,
         string? testId = null, double? strokeOpacity = null)
     {
-        _sb.Append($@"<rect x=""{x}"" y=""{y}"" width=""{width}"" height=""{height}""");
+        _sb.Append(FormattableString.Invariant($@"<rect x=""{x}"" y=""{y}"" width=""{width}"" height=""{height}"""));
         if (rx.HasValue)
-            _sb.Append($@" rx=""{rx.Value}""");
+            _sb.Append(FormattableString.Invariant($@" rx=""{rx.Value}"""));
         if (ry.HasValue)
-            _sb.Append($@" ry=""{ry.Value}""");
+            _sb.Append(FormattableString.Invariant($@" ry=""{ry.Value}"""));
         if (fill != null)
             _sb.Append($@" fill=""{fill}""");
         if (stroke != null)
             _sb.Append($@" stroke=""{stroke}""");
         if (strokeOpacity.HasValue)
-            _sb.Append($@" stroke-opacity=""{strokeOpacity.Value}""");
+            _sb.Append(FormattableString.Invariant($@" stroke-opacity=""{strokeOpacity.Value}"""));
         if (testId != null)
             _sb.Append($@" data-testid=""{testId}""");
         _sb.Append("/>");
@@ -118,13 +119,13 @@ public sealed class SvgBuilder : IDisposable
     public SvgBuilder Circle(double cx, double cy, double r, string? fill = null,
         string? stroke = null, double? strokeWidth = null)
     {
-        _sb.Append($@"<circle cx=""{cx}"" cy=""{cy}"" r=""{r}""");
+        _sb.Append(FormattableString.Invariant($@"<circle cx=""{cx}"" cy=""{cy}"" r=""{r}"""));
         if (fill != null)
             _sb.Append($@" fill=""{fill}""");
         if (stroke != null)
             _sb.Append($@" stroke=""{stroke}""");
         if (strokeWidth.HasValue)
-            _sb.Append($@" stroke-width=""{strokeWidth.Value}""");
+            _sb.Append(FormattableString.Invariant($@" stroke-width=""{strokeWidth.Value}"""));
         _sb.Append("/>");
         return this;
     }
@@ -132,7 +133,7 @@ public sealed class SvgBuilder : IDisposable
     public SvgBuilder Text(string content, double x, double y,
         string? className = null, string? fill = null, string? testId = null)
     {
-        _sb.Append($@"<text x=""{x}"" y=""{y}""");
+        _sb.Append(FormattableString.Invariant($@"<text x=""{x}"" y=""{y}"""));
         if (className != null)
             _sb.Append($@" class=""{className}""");
         if (fill != null)

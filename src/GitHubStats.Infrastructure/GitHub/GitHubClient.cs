@@ -6,6 +6,7 @@ using GitHubStats.Domain.Exceptions;
 using GitHubStats.Domain.Interfaces;
 using GitHubStats.Domain.Services;
 using GitHubStats.Infrastructure.Configuration;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -86,6 +87,17 @@ public sealed class GitHubClient : IGitHubClient
         }
 
         var user = response.Data.User;
+
+        // Validate essential fields were returned by the API
+        if (user.Commits == null || user.Reviews == null || user.PullRequests == null ||
+            user.OpenIssues == null || user.ClosedIssues == null || user.Followers == null ||
+            user.Repositories == null || user.RepositoriesContributedTo == null)
+        {
+            throw new DomainException(
+                $"GitHub API returned incomplete data for '{username}'. Check token scopes.",
+                "INCOMPLETE_DATA");
+        }
+
         var allExcludedRepos = (excludeRepos ?? [])
             .Concat(_accessControlOptions.ExcludeRepositories)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -94,6 +106,12 @@ public sealed class GitHubClient : IGitHubClient
         var totalStars = user.Repositories.Nodes
             .Where(r => !allExcludedRepos.Contains(r.Name))
             .Sum(r => r.Stargazers.TotalCount);
+
+        // If user has more than 100 repos, paginate to get accurate star count
+        if (user.Repositories.TotalCount > 100 && user.Repositories.PageInfo.HasNextPage)
+        {
+            totalStars += await FetchRemainingStarsAsync(username, user.Repositories.PageInfo.EndCursor!, allExcludedRepos, cancellationToken);
+        }
 
         // Use parallel-fetched commit count or GraphQL result
         int totalCommits = includeAllCommits
@@ -192,6 +210,7 @@ public sealed class GitHubClient : IGitHubClient
         IReadOnlyList<string>? excludeRepos = null,
         double sizeWeight = 1,
         double countWeight = 0,
+        bool includeForks = false,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -201,8 +220,14 @@ public sealed class GitHubClient : IGitHubClient
 
         var variables = new Dictionary<string, object?>
         {
-            ["login"] = username
+            ["login"] = username,
+            ["after"] = null
         };
+
+        if (!includeForks)
+        {
+            variables["isFork"] = false;
+        }
 
         var response = await ExecuteGraphQLAsync<TopLanguagesResponse>(
             GraphQLQueries.TopLanguagesQuery,
@@ -221,36 +246,31 @@ public sealed class GitHubClient : IGitHubClient
         // Aggregate language data
         var languageData = new Dictionary<string, (string Color, long Size, int Count)>();
 
+        var pageInfo = response.Data.User.Repositories.PageInfo;
         foreach (var repo in response.Data.User.Repositories.Nodes)
         {
-            // Skip archived repositories - they typically contain old/inactive code
-            if (repo.IsArchived)
-                continue;
+            ProcessRepoLanguages(repo, languageData, allExcludedRepos);
+        }
 
-            // Skip explicitly excluded repositories
-            if (allExcludedRepos.Contains(repo.Name))
-                continue;
+        while (pageInfo.HasNextPage)
+        {
+            variables["after"] = pageInfo.EndCursor;
+            var nextResponse = await ExecuteGraphQLAsync<TopLanguagesResponse>(
+                GraphQLQueries.TopLanguagesQuery,
+                variables,
+                cancellationToken);
 
-            foreach (var langEdge in repo.Languages.Edges)
+            if (nextResponse.Data?.User == null) break;
+
+            foreach (var repo in nextResponse.Data.User.Repositories.Nodes)
             {
-                var langName = langEdge.Node.Name;
-                var langColor = langEdge.Node.Color ?? "#858585";
-                var size = langEdge.Size;
-
-                if (languageData.TryGetValue(langName, out var existing))
-                {
-                    // Preserve the first color encountered for this language
-                    languageData[langName] = (existing.Color, existing.Size + size, existing.Count + 1);
-                }
-                else
-                {
-                    languageData[langName] = (langColor, size, 1);
-                }
+                ProcessRepoLanguages(repo, languageData, allExcludedRepos);
             }
+            pageInfo = nextResponse.Data.User.Repositories.PageInfo;
         }
 
         // Apply weights and sort
-        var languages = languageData
+        var languagesList = languageData
             .Select(kvp => new
             {
                 Name = kvp.Key,
@@ -262,9 +282,9 @@ public sealed class GitHubClient : IGitHubClient
             .OrderByDescending(l => l.WeightedSize)
             .ToList();
 
-        var totalSize = languages.Sum(l => l.OriginalSize);
+        var totalSize = languagesList.Sum(l => l.OriginalSize);
 
-        var result = languages.Select(l => new LanguageStats
+        var result = languagesList.Select(l => new LanguageStats
         {
             Name = l.Name,
             Color = l.Color,
@@ -278,6 +298,29 @@ public sealed class GitHubClient : IGitHubClient
             Languages = result,
             TotalSize = totalSize
         };
+    }
+
+    private static void ProcessRepoLanguages(TopLangsRepoNode repo, Dictionary<string, (string Color, long Size, int Count)> languageData, HashSet<string> allExcludedRepos)
+    {
+        if (repo.IsArchived || allExcludedRepos.Contains(repo.Name))
+            return;
+
+        foreach (var langEdge in repo.Languages.Edges)
+        {
+            var langName = langEdge.Node.Name;
+            var langColor = langEdge.Node.Color ?? "#858585";
+            var size = langEdge.Size;
+
+            if (languageData.TryGetValue(langName, out var existing))
+            {
+                languageData[langName] = (existing.Color, existing.Size + size, existing.Count + 1);
+            }
+            else
+            {
+                languageData[langName] = (langColor, size, 1);
+            }
+        }
+
     }
 
     public async Task<Gist> GetGistAsync(
@@ -644,11 +687,38 @@ public sealed class GitHubClient : IGitHubClient
             firstContribution);
     }
 
+    private async Task<int> FetchRemainingStarsAsync(string username, string endCursor, HashSet<string> excludedRepos, CancellationToken cancellationToken)
+    {
+        var totalStars = 0;
+        var cursor = endCursor;
+        var hasNextPage = true;
+
+        while (hasNextPage)
+        {
+            var response = await ExecuteGraphQLAsync<UserStatsResponse>(
+                GraphQLQueries.ReposPaginationQuery,
+                new Dictionary<string, object?> { ["login"] = username, ["after"] = cursor },
+                cancellationToken);
+
+            if (response.Data?.User?.Repositories == null) break;
+
+            var repos = response.Data.User.Repositories;
+            totalStars += repos.Nodes
+                .Where(r => !excludedRepos.Contains(r.Name))
+                .Sum(r => r.Stargazers.TotalCount);
+
+            hasNextPage = repos.PageInfo.HasNextPage;
+            cursor = repos.PageInfo.EndCursor;
+        }
+
+        return totalStars;
+    }
+
     private async Task<int> FetchTotalCommitsAsync(string username, CancellationToken cancellationToken)
     {
         var token = _tokenRotator.GetNextToken();
         var request = new HttpRequestMessage(HttpMethod.Get,
-            $"{_options.RestApiEndpoint}/search/commits?q=author:{username}");
+            $"{_options.RestApiEndpoint}/search/commits?q=author:{Uri.EscapeDataString(username)}");
         request.Headers.Add("Authorization", $"token {token}");
         request.Headers.Add("Accept", "application/vnd.github.cloak-preview");
         request.Headers.Add("User-Agent", "GitHubStats");
@@ -730,18 +800,18 @@ internal sealed class UserStatsResponse
 internal sealed class UserData
 {
     public string? Name { get; set; }
-    public required string Login { get; set; }
-    public required ContributionsData Commits { get; set; }
-    public required ReviewsData Reviews { get; set; }
-    public required CountData RepositoriesContributedTo { get; set; }
-    public required CountData PullRequests { get; set; }
+    public string Login { get; set; } = "";
+    public ContributionsData? Commits { get; set; }
+    public ReviewsData? Reviews { get; set; }
+    public CountData? RepositoriesContributedTo { get; set; }
+    public CountData? PullRequests { get; set; }
     public CountData? MergedPullRequests { get; set; }
-    public required CountData OpenIssues { get; set; }
-    public required CountData ClosedIssues { get; set; }
-    public required CountData Followers { get; set; }
+    public CountData? OpenIssues { get; set; }
+    public CountData? ClosedIssues { get; set; }
+    public CountData? Followers { get; set; }
     public CountData? RepositoryDiscussions { get; set; }
     public CountData? RepositoryDiscussionComments { get; set; }
-    public required RepositoriesData Repositories { get; set; }
+    public RepositoriesData? Repositories { get; set; }
 }
 
 internal sealed class ContributionsData
@@ -762,14 +832,14 @@ internal sealed class CountData
 internal sealed class RepositoriesData
 {
     public int TotalCount { get; set; }
-    public required List<RepoNode> Nodes { get; set; }
-    public required PageInfo PageInfo { get; set; }
+    public List<RepoNode> Nodes { get; set; } = [];
+    public PageInfo PageInfo { get; set; } = new();
 }
 
 internal sealed class RepoNode
 {
-    public required string Name { get; set; }
-    public required StargazersData Stargazers { get; set; }
+    public string Name { get; set; } = "";
+    public StargazersData Stargazers { get; set; } = new();
 }
 
 internal sealed class StargazersData
@@ -831,6 +901,7 @@ internal sealed class TopLangsUserData
 internal sealed class TopLangsRepositoriesData
 {
     public required List<TopLangsRepoNode> Nodes { get; set; }
+    public required PageInfo PageInfo { get; set; }
 }
 
 internal sealed class TopLangsRepoNode
